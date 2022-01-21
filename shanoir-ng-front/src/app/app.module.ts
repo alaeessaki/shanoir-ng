@@ -246,6 +246,11 @@ import { TagCreatorComponent } from './tags/tag.creator.component';
 import { TagInputComponent } from './tags/tag.input.component';
 import { StudyUserListComponent } from './studies/studyuser/studyuser-list.component';
 import { VarDirective } from './utils/ng-var.directive';
+import { ProcessingComponent } from './processing/processing.component';
+import { PipelinesComponent } from './processing/pipelines/pipelines.component';
+import { CarminClientService } from './carmin/shared/carmin-client.service';
+import { PipelineComponent } from './processing/pipelines/pipeline/pipeline.component';
+import { PipelineDescriptionComponent } from './processing/pipelines/pipeline-description/pipeline-description.component';
 
 @NgModule({
     imports: [
@@ -417,7 +422,11 @@ import { VarDirective } from './utils/ng-var.directive';
         ChallengeBlockComponent,
         TagInputComponent,
         StudyUserListComponent,
-        VarDirective
+        VarDirective,
+        ProcessingComponent,
+        PipelinesComponent,
+        PipelineComponent,
+        PipelineDescriptionComponent
     ],
     entryComponents: [
         ConfirmDialogComponent,
@@ -441,6 +450,7 @@ import { VarDirective } from './utils/ng-var.directive';
         CenterService,
         ConfirmDialogService,
         ExaminationService,
+        CarminClientService,
         {
             provide: ErrorHandler,
             useClass: HandleErrorService

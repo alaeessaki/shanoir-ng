@@ -86,6 +86,8 @@ import { SolrSearchComponent } from './solr/solr.search.component';
 import { StudyCardForRulesListComponent } from './study-cards/study-card-list/study-card-list-for-rules.component';
 import { ProcessedDatasetClinicalContextComponent } from './import/processed-dataset-clinical-context/processed-dataset-clinical-context.component';
 import { DUAComponent } from './dua/dua.component';
+import { ProcessingComponent } from './processing/processing.component';
+import { PipelinesComponent } from './processing/pipelines/pipelines.component';
 
 let routes: Routes = [
     {
@@ -112,6 +114,15 @@ let routes: Routes = [
     }, {
         path: 'solr-search',
         component: SolrSearchComponent
+    }, {
+        path: 'processing',
+        component: ProcessingComponent,
+        children:[
+            {
+                path: 'pipelines',
+                component: PipelinesComponent
+            }
+        ]
     }, {
         path: 'imports',
         component: ImportComponent,
