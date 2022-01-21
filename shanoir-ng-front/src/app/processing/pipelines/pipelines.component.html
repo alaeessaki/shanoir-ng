@@ -1,0 +1,31 @@
+<p>Please choose one of the pipelines available :</p>
+<h3>Pipeline list : </h3>
+<div class="row">
+    <div class="pipelines">
+        <app-pipeline *ngFor="let pipeline of pipelines" [pipeline]="pipeline" (click)="selectPipeline(pipeline)"></app-pipeline>
+    </div>
+    <div class="pipeline-description">
+        <div *ngIf="selectedPipeline else selectPipeLineMessage">
+            <h3>Name : </h3>
+            <p>{{selectedPipeline.name}}</p>
+            <h3>Description : </h3>
+            <p>{{selectedPipeline.description}}</p>
+            <h3>Can Execute :</h3>
+            <p>{{selectedPipeline.canExecute ? 'Yes':'No'}}</p>
+            <hr>
+            <h3>Parameters : </h3>
+            <ul>
+                <li *ngFor="let parameter of selectedPipeline.parameters" class="parameter">
+                    <p><strong>{{parameter.name}}</strong> : {{parameter.description}}</p>
+                    <p>Optional : {{parameter.isOptional ? 'Yes' : 'No' }}</p>
+                </li>
+            </ul>
+            <hr>
+            <button class="execute" type="button">Run this pipeline</button>
+        </div>
+        <ng-template #selectPipeLineMessage>
+            <p *ngIf="descriptionLoading">Loading...</p>
+            <p *ngIf="!descriptionLoading">Please Choose a Pipeline to see it's description</p>
+        </ng-template>
+    </div>
+</div>

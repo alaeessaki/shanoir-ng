@@ -1,0 +1,13 @@
+.pipeline{
+    padding: 15px 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.pipeline:hover{
+    background-color: rgb(212, 212, 212);
+}
+.name{
+    display: inline;
+    padding-left: 10px;
+    font-weight: 700;
+}
