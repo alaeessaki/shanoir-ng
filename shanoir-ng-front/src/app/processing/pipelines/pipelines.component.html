@@ -21,11 +21,11 @@
                 </li>
             </ul>
             <hr>
-            <button class="execute" type="button">Run this pipeline</button>
+            <button class="execute" type="button" (click)="choosePipeLine()">Run this pipeline</button>
         </div>
         <ng-template #selectPipeLineMessage>
             <p *ngIf="descriptionLoading">Loading...</p>
-            <p *ngIf="!descriptionLoading">Please Choose a Pipeline to see it's description</p>
+            <p *ngIf="!descriptionLoading">Please select a Pipeline to see it's description</p>
         </ng-template>
     </div>
 </div>

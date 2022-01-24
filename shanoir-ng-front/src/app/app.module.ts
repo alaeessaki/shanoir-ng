@@ -250,7 +250,7 @@ import { ProcessingComponent } from './processing/processing.component';
 import { PipelinesComponent } from './processing/pipelines/pipelines.component';
 import { CarminClientService } from './carmin/shared/carmin-client.service';
 import { PipelineComponent } from './processing/pipelines/pipeline/pipeline.component';
-import { PipelineDescriptionComponent } from './processing/pipelines/pipeline-description/pipeline-description.component';
+import { ExecutionComponent } from './processing/execution/execution.component';
 
 @NgModule({
     imports: [
@@ -426,7 +426,7 @@ import { PipelineDescriptionComponent } from './processing/pipelines/pipeline-de
         ProcessingComponent,
         PipelinesComponent,
         PipelineComponent,
-        PipelineDescriptionComponent
+        ExecutionComponent
     ],
     entryComponents: [
         ConfirmDialogComponent,

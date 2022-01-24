@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { BreadcrumbsService } from 'src/app/breadcrumbs/breadcrumbs.service';
 import { Pipeline } from 'src/app/carmin/models/pipeline';
 import { CarminClientService } from 'src/app/carmin/shared/carmin-client.service';
+import { ProcessingService } from '../processing.service';
 
 @Component({
   selector: 'app-pipelines',
@@ -13,9 +16,12 @@ export class PipelinesComponent implements OnInit {
   selectedPipeline:Pipeline;
   descriptionLoading:boolean;
 
-  constructor(private carminClientService: CarminClientService) { 
+  constructor(private breadcrumbsService: BreadcrumbsService,private carminClientService: CarminClientService, private router: Router, private processingService:ProcessingService) { 
     this.pipelines = [];
     this.descriptionLoading = false;
+    
+    this.breadcrumbsService.currentStepAsMilestone();
+    this.breadcrumbsService.nameStep('1. Processing');
   }
 
   ngOnInit(): void {
@@ -38,6 +44,11 @@ export class PipelinesComponent implements OnInit {
         console.error(error);
       }
     )
+  }
+
+  choosePipeLine(){
+    this.processingService.setPipeline(this.selectedPipeline);
+    this.router.navigate(['processing/execution']);
   }
 
 }

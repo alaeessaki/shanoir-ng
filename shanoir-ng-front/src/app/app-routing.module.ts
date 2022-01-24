@@ -88,6 +88,7 @@ import { ProcessedDatasetClinicalContextComponent } from './import/processed-dat
 import { DUAComponent } from './dua/dua.component';
 import { ProcessingComponent } from './processing/processing.component';
 import { PipelinesComponent } from './processing/pipelines/pipelines.component';
+import { ExecutionComponent } from './processing/execution/execution.component';
 
 let routes: Routes = [
     {
@@ -121,6 +122,9 @@ let routes: Routes = [
             {
                 path: 'pipelines',
                 component: PipelinesComponent
+            }, {
+                path: 'execution',
+                component: ExecutionComponent
             }
         ]
     }, {

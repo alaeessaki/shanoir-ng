@@ -12,9 +12,7 @@ export class ProcessingComponent implements OnInit {
 
   error:boolean;
 
-  constructor(private breadcrumbsService: BreadcrumbsService, private router: Router, private activatedRoute: ActivatedRoute, private processingService: ProcessingService) {
-    this.breadcrumbsService.markMilestone();
-    this.breadcrumbsService.nameStep('Processing');
+  constructor(private router: Router, private activatedRoute: ActivatedRoute, private processingService: ProcessingService) {
     this.error = false; 
    }
 
