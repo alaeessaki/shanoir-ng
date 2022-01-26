@@ -1,11 +1,17 @@
 <p>Please choose one of the pipelines available :</p>
-<h3>Pipeline list : </h3>
+<hr>
 <div class="row">
-    <div class="pipelines">
-        <app-pipeline *ngFor="let pipeline of pipelines" [pipeline]="pipeline" (click)="selectPipeline(pipeline)"></app-pipeline>
+    <div class="pipeline-list">
+        <p class="category-label">Category label</p>
+        <hr>
+        <div class="pipelines">
+            <app-pipeline *ngFor="let pipeline of pipelines" [pipeline]="pipeline" (click)="selectPipeline(pipeline)"></app-pipeline>
+        </div>
     </div>
     <div class="pipeline-description">
         <div *ngIf="selectedPipeline else selectPipeLineMessage">
+            <h3>Pipeline description</h3>
+            <hr>
             <h3>Name : </h3>
             <p>{{selectedPipeline.name}}</p>
             <h3>Description : </h3>
@@ -25,7 +31,11 @@
         </div>
         <ng-template #selectPipeLineMessage>
             <p *ngIf="descriptionLoading">Loading...</p>
-            <p *ngIf="!descriptionLoading">Please select a Pipeline to see it's description</p>
+            <div *ngIf="!descriptionLoading">
+                <h3>Pipeline description : </h3>
+                <hr>
+                <p class="warning"><i class="fas fa-exclamation-triangle"></i>Please select a pipeline to see it's description!</p>
+            </div>
         </ng-template>
     </div>
 </div>
