@@ -7,9 +7,17 @@
     </div>
 
     <div *ngFor="let parameter of pipeline.parameters">
-        <label for="{{parameter.name}}">{{parameter.name}} {{parameter.isOptional ? '*' : ''}}</label>
-        <input [type]="getParameterType(parameter.type)" formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
+        <label *ngIf="!isAFile(parameter.type)" for="{{parameter.name}}">{{parameter.name}} {{parameter.isOptional ? '*' : ''}}</label>
+        <input *ngIf="!isAFile(parameter.type)" [type]="getParameterType(parameter.type)" formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
     </div>
-
+    <div *ngIf="selectedDatasets">
+        <p>
+            Selected Dataset : 
+            <label class="dataset-id" *ngFor="let dataset of selectedDatasets; index as i">
+                {{dataset}} 
+                <label class="dataset-id" *ngIf="i < selectedDatasets.size - 1">, </label>
+            </label>
+        </p>
+    </div>
     <button type="submit">Run</button>
 </form>

@@ -9,3 +9,7 @@ div{
     margin: 20px 0;
     display: flex; 
 }
+.dataset-id{
+    display: inline !important;
+    color: var(--color-a);
+}

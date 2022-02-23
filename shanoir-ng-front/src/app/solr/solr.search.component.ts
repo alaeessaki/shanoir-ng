@@ -458,7 +458,7 @@ export class SolrSearchComponent implements AfterViewChecked{
             {title: "Download as DICOM", awesome: "fa-download", action: () => this.massiveDownload('dcm'), disabledIfNoResult: true},
             {title: "Download as Nifti", awesome: "fa-download", action: () => this.massiveDownload('nii'), disabledIfNoResult: true},
             {title: "Delete selected", awesome: "fa-trash", action: this.openDeleteSelectedConfirmDialog, disabledIfNoResult: true},
-            {title: "Run a process", awesome: "fa-rocket", action: () => this.initExecutionMode() ,disabledIfNoSelected: true }
+            {title: "Run a process", awesome: "fa-rocket", action: () => this.initExecutionMode() ,disabledIfNoResult: true }
         );
         return customActionDefs;
     }

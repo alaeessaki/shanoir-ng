@@ -18,9 +18,11 @@ export class ExecutionComponent implements OnInit {
 
   pipeline: Pipeline;
   executionForm: FormGroup;
+  selectedDatasets: Set<number>;
 
   constructor(private breadcrumbsService: BreadcrumbsService, private processingService: ProcessingService, private carminClientService:CarminClientService, private router:Router,private msgService: MsgBoxService) { 
     this.breadcrumbsService.nameStep('2. Execution');
+    this.selectedDatasets = new Set();
   }
 
   ngOnInit(): void {
@@ -34,6 +36,11 @@ export class ExecutionComponent implements OnInit {
         this.initExecutionForm()
       }
     )
+    this.processingService.selectedDatasets.subscribe(
+      (datasets: Set<number>)=>{
+        this.selectedDatasets = datasets;
+      }
+    )
   }
 
   initExecutionForm(){
@@ -41,7 +48,7 @@ export class ExecutionComponent implements OnInit {
       "execution_name": new FormControl('', Validators.required)
     });
 
-    this.pipeline.parameters.forEach(
+    this.pipeline.parameters.filter(p => p.type != ParameterType.File).forEach(
       parameter=>{
         let control = new FormControl(parameter.defaultValue);
         let validators:Validators[] = [];
@@ -49,6 +56,8 @@ export class ExecutionComponent implements OnInit {
         this.executionForm.addControl(parameter.name, control);
       }
     )
+
+     console.log(this.executionForm);
   }
 
   onSubmitExecutionForm(){
@@ -59,8 +68,12 @@ export class ExecutionComponent implements OnInit {
     execution.inputValues = {};
     this.pipeline.parameters.forEach(
       parameter=>{
-        if(parameter.name == "file"){
-          execution.inputValues[parameter.name]= "/vip/Home/lorem_ipsum.txt";
+        console.log(this.executionForm);
+        console.log(this.executionForm.get(parameter.name))
+        if(parameter.type == ParameterType.File){
+          // TODO this  platform identifier ("shanoir") should be in a constant file
+          // TODO the file order should be specified automaticaly, with the help of the UI or the order.
+          execution.inputValues[parameter.name]= "shanoir:"+[...this.selectedDatasets][0];
         }else{
           execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
         }
@@ -77,7 +90,7 @@ export class ExecutionComponent implements OnInit {
   )
   }
 
-  getParameterType(parameterType: ParameterType){
+  getParameterType(parameterType: ParameterType): String{
     switch(parameterType){
       case ParameterType.String:
       case ParameterType.Boolean: return 'text';
@@ -85,6 +98,11 @@ export class ExecutionComponent implements OnInit {
       case ParameterType.Double: return 'number';
       case ParameterType.File: return 'file';
     }
+  }
+
+  isAFile(parameterType: ParameterType): boolean{
+    if(parameterType ==  ParameterType.File) return true;
+    return false;
   }
 
 }
