@@ -50,6 +50,7 @@ spring:
     sql-dialect: Mysql
   rabbitmq:
     host: ${SHANOIR_PREFIX}rabbitmq
+    connection-timeout: 10000
     port: 5672
   session:
     store-type: none
