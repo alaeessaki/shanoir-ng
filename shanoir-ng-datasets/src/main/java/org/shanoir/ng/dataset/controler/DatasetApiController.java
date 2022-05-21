@@ -65,7 +65,6 @@ import org.shanoir.ng.datasetfile.DatasetFile;
 import org.shanoir.ng.download.WADODownloaderService;
 import org.shanoir.ng.examination.model.Examination;
 import org.shanoir.ng.examination.service.ExaminationService;
-import org.shanoir.ng.exporter.service.BIDSService;
 import org.shanoir.ng.importer.dto.ProcessedDatasetImportJob;
 import org.shanoir.ng.importer.service.ImporterService;
 import org.shanoir.ng.shared.configuration.RabbitMQConfiguration;
@@ -80,6 +79,7 @@ import org.shanoir.ng.shared.exception.RestServiceException;
 import org.shanoir.ng.shared.model.Subject;
 import org.shanoir.ng.shared.repository.StudyRepository;
 import org.shanoir.ng.shared.repository.SubjectRepository;
+import org.shanoir.ng.utils.DatasetFileUtils;
 import org.shanoir.ng.utils.KeycloakUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,9 +150,6 @@ public class DatasetApiController implements DatasetApi {
 	private WADODownloaderService downloader;
 
 	@Autowired
-	private BIDSService bidsService;
-
-	@Autowired
 	private DatasetSecurityService datasetSecurityService;
 
 	@Autowired
@@ -167,12 +164,15 @@ public class DatasetApiController implements DatasetApi {
 	@Autowired
 	private RabbitTemplate rabbitTemplate;
 
+	private DatasetFileUtils datasetFileUtils;
+
 	/** Number of downloadable datasets. */
 	private static final int DATASET_LIMIT = 50;
 
 	@org.springframework.beans.factory.annotation.Autowired
 	public DatasetApiController(final HttpServletRequest request) {
 		this.request = request;
+        this.datasetFileUtils = new DatasetFileUtils();
 	}
 
 	@Override
@@ -181,8 +181,6 @@ public class DatasetApiController implements DatasetApi {
 					throws RestServiceException {
 
 		try {
-			Dataset dataset = datasetService.findById(datasetId);
-			bidsService.deleteDataset(dataset);
 			datasetService.deleteById(datasetId);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 		} catch (EntityNotFoundException e) {
@@ -196,10 +194,6 @@ public class DatasetApiController implements DatasetApi {
 			@RequestBody(required = true) List<Long> datasetIds)
 					throws RestServiceException {
 		try {
-			List<Dataset> datasets = datasetService.findByIdIn(datasetIds);
-			for (Dataset dataset : datasets) {
-				bidsService.deleteDataset(dataset);
-			}
 			datasetService.deleteByIdIn(datasetIds);
 			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 		} catch (EntityNotFoundException e) {
@@ -340,7 +334,7 @@ public class DatasetApiController implements DatasetApi {
 
 		/* Create folder and file */
 		String tmpDir = System.getProperty(JAVA_IO_TMPDIR);
-		File userDir = getUserImportDir(tmpDir);
+		File userDir = datasetFileUtils.getUserImportDir(tmpDir);
 
 		String datasetName = "";
 		datasetName += dataset.getId() + "-" + dataset.getName();
@@ -366,8 +360,9 @@ public class DatasetApiController implements DatasetApi {
 			}
 
 			if (DCM.equals(format)) {
-				getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
+				datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
 				downloader.downloadDicomFilesForURLs(pathURLs, workFolder, subjectName, dataset);
+
 			} else if (NII.equals(format)) {
 				// Check if we want a specific converter
 				if (converterId != null) {
@@ -377,8 +372,9 @@ public class DatasetApiController implements DatasetApi {
 					File tmpFile = new File(userDir.getAbsolutePath() + File.separator + "Datasets" + formatter.format(new DateTime().toDate()));
 					tmpFile.mkdirs();
 					// Download DICOMs in the temporary folder
-					getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
-					downloader.downloadDicomFilesForURLs(pathURLs, tmpFile, subjectName, dataset);
+
+					datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
+					downloader.downloadDicomFilesForURLs(pathURLs, workFolder, subjectName, dataset);
 
 					// Convert them, sending to import microservice
 					boolean result = (boolean) this.rabbitTemplate.convertSendAndReceive(RabbitMQConfiguration.NIFTI_CONVERSION_QUEUE, converterId + ";" + tmpFile.getAbsolutePath());
@@ -390,12 +386,12 @@ public class DatasetApiController implements DatasetApi {
 					tmpFilePath = tmpFile.getAbsolutePath();
 					workFolder = new File(tmpFile.getAbsolutePath() + File.separator + "result");
 				} else  {
-					getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.NIFTI_SINGLE_FILE);
-					copyNiftiFilesForURLs(pathURLs, workFolder, dataset, subjectName);
+					datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.NIFTI_SINGLE_FILE);
+					datasetFileUtils.copyNiftiFilesForURLs(pathURLs, workFolder, dataset, subjectName);
 				}
 			} else if (EEG.equals(format)) {
-				getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.EEG);
-				copyNiftiFilesForURLs(pathURLs, workFolder, dataset, subjectName);
+				datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.EEG);
+				datasetFileUtils.copyNiftiFilesForURLs(pathURLs, workFolder, dataset, subjectName);
 			} else {
 				throw new RestServiceException(
 						new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Bad arguments", null));
@@ -419,7 +415,7 @@ public class DatasetApiController implements DatasetApi {
 		File zipFile = new File(tmpFilePath + ZIP);
 		zipFile.createNewFile();
 
-		zip(workFolder.getAbsolutePath(), zipFile.getAbsolutePath());
+		datasetFileUtils.zip(workFolder.getAbsolutePath(), zipFile.getAbsolutePath());
 
 		// Try to determine file's content type
 		String contentType = request.getServletContext().getMimeType(zipFile.getAbsolutePath());
@@ -499,7 +495,7 @@ public class DatasetApiController implements DatasetApi {
 		datasets = datasetSecurityService.hasRightOnAtLeastOneDataset(datasets, "CAN_DOWNLOAD");
 		// STEP 3: Get the data
 		// Check rights on at least one of the datasets and filter the datasetIds list
-		File userDir = getUserImportDir(System.getProperty(JAVA_IO_TMPDIR));
+		File userDir = datasetFileUtils.getUserImportDir(System.getProperty(JAVA_IO_TMPDIR));
 
 		// Add timestamp to get a difference
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -543,14 +539,15 @@ public class DatasetApiController implements DatasetApi {
 				List<URL> pathURLs = new ArrayList<>();
 
 				if (dataset instanceof EegDataset) {
-					getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.EEG);
-					copyNiftiFilesForURLs(pathURLs, datasetFile, dataset, subjectName);
+					datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.EEG);
+					datasetFileUtils.copyNiftiFilesForURLs(pathURLs, datasetFile, dataset, subjectName);
 				} else if (DCM.equals(format)) {
-					getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
+					datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
 					downloader.downloadDicomFilesForURLs(pathURLs, datasetFile, subjectName, dataset);
+
 				} else if (NII.equals(format)) {
-					getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.NIFTI_SINGLE_FILE);
-					copyNiftiFilesForURLs(pathURLs, datasetFile, dataset, subjectName);
+					datasetFileUtils.getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.NIFTI_SINGLE_FILE);
+					datasetFileUtils.copyNiftiFilesForURLs(pathURLs, datasetFile, dataset, subjectName);
 				} else {
 					throw new RestServiceException(
 							new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Please choose either nifti, dicom or eeg file type.", null));
@@ -600,7 +597,7 @@ public class DatasetApiController implements DatasetApi {
 		// Zip it
 		File zipFile = new File(tmpFile.getAbsolutePath() + ZIP);
 		zipFile.createNewFile();
-		zip(tmpFile.getAbsolutePath(), zipFile.getAbsolutePath());
+		datasetFileUtils.zip(tmpFile.getAbsolutePath(), zipFile.getAbsolutePath());
 
 		// Try to determine file's content type
 		String contentType = request.getServletContext().getMimeType(zipFile.getAbsolutePath());
@@ -620,111 +617,6 @@ public class DatasetApiController implements DatasetApi {
 		} finally {
 			FileUtils.deleteQuietly(tmpFile);
 			FileUtils.deleteQuietly(zipFile);
-		}
-	}
-
-	/**
-	 * Receives a list of URLs containing file:/// urls and copies the files to a folder named workFolder.
-	 * @param urls
-	 * @param workFolder
-	 * @param subjectName the subjectName
-	 * @throws IOException
-	 * @throws MessagingException
-	 */
-	private void copyNiftiFilesForURLs(final List<URL> urls, final File workFolder, Dataset dataset, Object subjectName) throws IOException {
-		int index = 0;
-		for (Iterator<URL> iterator = urls.iterator(); iterator.hasNext();) {
-			URL url =  iterator.next();
-			File srcFile = new File(UriUtils.decode(url.getPath(), "UTF-8"));
-
-			// Consider processed datasets
-			if (dataset.getDatasetProcessing() != null || dataset.getDatasetAcquisition() == null) {
-				File destFile = new File(workFolder.getAbsolutePath() + File.separator + srcFile.getName());
-				Files.copy(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-				index++;
-				continue;
-			}
-
-			// Theorical file name:  NomSujet_SeriesDescription_SeriesNumberInProtocol_SeriesNumberInSequence.nii(.gz)
-			StringBuilder name = new StringBuilder("");
-
-			name.append(subjectName).append("_");
-			if (dataset instanceof EegDataset) {
-				name.append(dataset.getName()).append("_");
-			} else {
-				if (dataset.getUpdatedMetadata().getComment() != null) {
-					name.append(dataset.getUpdatedMetadata().getComment()).append("_");
-				}
-				name.append(dataset.getDatasetAcquisition().getSortingIndex()).append("_");
-				if (dataset.getUpdatedMetadata().getName() != null && dataset.getUpdatedMetadata().getName().lastIndexOf(" ") != -1) {
-					name.append(dataset.getUpdatedMetadata().getName().substring(dataset.getUpdatedMetadata().getName().lastIndexOf(" ") + 1)).append("_");
-				}
-			}
-			name.append(dataset.getDatasetAcquisition().getRank()).append("_")
-			.append(index)
-			.append(".");
-			if (srcFile.getName().endsWith(".nii.gz")) {
-				name.append("nii.gz");
-			} else {
-				name.append(FilenameUtils.getExtension(srcFile.getName()));
-			}
-			File destFile = new File(workFolder.getAbsolutePath() + File.separator + name);
-			Files.copy(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			index++;
-		}
-	}
-
-	/**
-	 * Reads all dataset files depending on the format attached to one dataset.
-	 * @param dataset
-	 * @param pathURLs
-	 * @throws MalformedURLException
-	 */
-	private void getDatasetFilePathURLs(final Dataset dataset, final List<URL> pathURLs, final DatasetExpressionFormat format) throws MalformedURLException {
-		List<DatasetExpression> datasetExpressions = dataset.getDatasetExpressions();
-		for (Iterator<DatasetExpression> itExpressions = datasetExpressions.iterator(); itExpressions.hasNext();) {
-			DatasetExpression datasetExpression = itExpressions.next();
-			if (datasetExpression.getDatasetExpressionFormat().equals(format)) {
-				List<DatasetFile> datasetFiles = datasetExpression.getDatasetFiles();
-				for (Iterator<DatasetFile> itFiles = datasetFiles.iterator(); itFiles.hasNext();) {
-					DatasetFile datasetFile = itFiles.next();
-					URL url = new URL(datasetFile.getPath().replaceAll("%20", " "));
-					pathURLs.add(url);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Zip
-	 * 
-	 * @param sourceDirPath
-	 * @param zipFilePath
-	 * @throws IOException
-	 */
-	private void zip(final String sourceDirPath, final String zipFilePath) throws IOException {
-		Path p = Paths.get(zipFilePath);
-		// 1. Create an outputstream (zip) on the destination
-		try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(p))) {
-
-			// 2. "Walk" => iterate over the source file
-			Path pp = Paths.get(sourceDirPath);
-			try(Stream<Path> walker = Files.walk(pp)) {
-
-				// 3. We only consider directories, and we copyt them directly by "relativising" them then copying them to the output
-				walker.filter(path -> !path.toFile().isDirectory())
-				.forEach(path -> {
-					ZipEntry zipEntry = new ZipEntry(pp.relativize(path).toString());
-					try {
-						zos.putNextEntry(zipEntry);
-						Files.copy(path, zos);
-						zos.closeEntry();
-					} catch (IOException e) {
-						LOG.error(e.getMessage(), e);
-					}
-				});
-			}
-			zos.finish();
 		}
 	}
 
@@ -787,16 +679,6 @@ public class DatasetApiController implements DatasetApi {
 		}
 	}
 
-	public static File getUserImportDir(String importDir) {
-		final Long userId = KeycloakUtil.getTokenUserId();
-		final String userImportDirFilePath = importDir + File.separator + Long.toString(userId);
-		final File userImportDir = new File(userImportDirFilePath);
-		if (!userImportDir.exists()) {
-			userImportDir.mkdirs(); // create if not yet existing
-		} // else is wanted case, user has already its import directory
-		return userImportDir;
-	}
-
 	/**
 	 * Validate a dataset
 	 * 
@@ -854,7 +736,7 @@ public class DatasetApiController implements DatasetApi {
 			@RequestParam(value = "subjectNameOutRegExp", required = false) String subjectNameOutRegExp
 			) throws RestServiceException, IOException {
 		String tmpDir = System.getProperty(JAVA_IO_TMPDIR);
-		File userDir = getUserImportDir(tmpDir);
+		File userDir = datasetFileUtils.getUserImportDir(tmpDir);
 		File statisticsFile = recreateFile(userDir + File.separator + "shanoirExportStatistics.txt");
 		File zipFile = recreateFile(userDir + File.separator + "shanoirExportStatistics" + ZIP);
 
