@@ -52,7 +52,7 @@ export class CarminClientService {
    * @param body Execution
    */
   public createExecution(execution: Execution ): Observable<Execution> {
-
+    
     if (execution === null || execution === undefined) {
       throw new Error('Required parameter execution was null or undefined when calling createExecution.');
     }

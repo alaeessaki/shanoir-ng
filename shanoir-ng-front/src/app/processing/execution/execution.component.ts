@@ -1,11 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BreadcrumbsService } from 'src/app/breadcrumbs/breadcrumbs.service';
 import { Execution } from 'src/app/carmin/models/execution';
 import { ParameterType } from 'src/app/carmin/models/parameterType';
 import { Pipeline } from 'src/app/carmin/models/pipeline';
 import { CarminClientService } from 'src/app/carmin/shared/carmin-client.service';
+import { Dataset } from 'src/app/datasets/shared/dataset.model';
+import { DatasetService } from 'src/app/datasets/shared/dataset.service';
+import { KeycloakService } from 'src/app/shared/keycloak/keycloak.service';
 import { MsgBoxService } from 'src/app/shared/msg-box/msg-box.service';
 import { ProcessingService } from '../processing.service';
 
@@ -18,11 +21,13 @@ export class ExecutionComponent implements OnInit {
 
   pipeline: Pipeline;
   executionForm: FormGroup;
-  selectedDatasets: Set<number>;
+  selectedDatasets: Set<Dataset>;
+  token:String;
+  refreshToken:String;
 
-  constructor(private breadcrumbsService: BreadcrumbsService, private processingService: ProcessingService, private carminClientService:CarminClientService, private router:Router,private msgService: MsgBoxService) { 
+  constructor(private breadcrumbsService: BreadcrumbsService, private processingService: ProcessingService, private carminClientService:CarminClientService, private router:Router,private msgService: MsgBoxService, private keycloakService: KeycloakService, private datasetService: DatasetService) { 
     this.breadcrumbsService.nameStep('2. Execution');
-    this.selectedDatasets = new Set();
+    this.selectedDatasets = new Set<Dataset>();
   }
 
   ngOnInit(): void {
@@ -38,7 +43,25 @@ export class ExecutionComponent implements OnInit {
     )
     this.processingService.selectedDatasets.subscribe(
       (datasets: Set<number>)=>{
-        this.selectedDatasets = datasets;
+        let selectedDatasets = new Set<Dataset>();
+        datasets.forEach(
+          id=>{
+            this.datasetService.get(id).then((dataset: Dataset) => {
+              selectedDatasets.add(dataset);
+            })
+          }
+        )
+        this.selectedDatasets = selectedDatasets;
+      }
+    )
+    this.keycloakService.getToken().then(
+      (token: String)=>{
+        this.token = token;
+      }
+    )
+    this.keycloakService.getRefreshToken().then(
+      (refreshToken: String)=>{
+        this.refreshToken = refreshToken;
       }
     )
   }
@@ -48,16 +71,14 @@ export class ExecutionComponent implements OnInit {
       "execution_name": new FormControl('', Validators.required)
     });
 
-    this.pipeline.parameters.filter(p => p.type != ParameterType.File).forEach(
+    this.pipeline.parameters.forEach(
       parameter=>{
-        let control = new FormControl(parameter.defaultValue);
-        let validators:Validators[] = [];
+        let validators:ValidatorFn[] = [];
         if(!parameter.isOptional) validators.push(Validators.required);
+        let control = new FormControl(parameter.defaultValue, validators);
         this.executionForm.addControl(parameter.name, control);
       }
     )
-
-     console.log(this.executionForm);
   }
 
   onSubmitExecutionForm(){
@@ -68,26 +89,32 @@ export class ExecutionComponent implements OnInit {
     execution.inputValues = {};
     this.pipeline.parameters.forEach(
       parameter=>{
-        console.log(this.executionForm);
-        console.log(this.executionForm.get(parameter.name))
+        console.log(parameter)
         if(parameter.type == ParameterType.File){
-          // TODO this  platform identifier ("shanoir") should be in a constant file
-          // TODO the file order should be specified automaticaly, with the help of the UI or the order.
-          execution.inputValues[parameter.name]= "shanoir:"+[...this.selectedDatasets][0];
+          let dataset = this.executionForm.get(parameter.name).value;
+          execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.dcm?format=dcm&datasetId=${dataset.id}token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
         }else{
           execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
         }
       }
     )
-    this.carminClientService.createExecution(execution).subscribe(
-      (_)=>{
-          console.log("executed !");
-          this.msgService.log('info', 'the execution successfully started.')
-      },
-      (error)=>{
-          this.msgService.log('error', 'Sorry, an error occurred while starting the execution.');
-      }
-  )
+    /**
+     * Init result location
+     */
+    execution.resultsLocation = `shanoir:/download${[...this.selectedDatasets][0].id}".dcm?format=dcm&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}"&md5=none&type=File`;
+
+    execution.executable="file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz"
+    
+    console.log(execution);
+    // this.carminClientService.createExecution(execution).subscribe(
+    //   (_)=>{
+    //       console.log("executed !");
+    //       this.msgService.log('info', 'the execution successfully started.')
+    //   },
+    //   (error)=>{
+    //       this.msgService.log('error', 'Sorry, an error occurred while starting the execution.');
+    //   }
+    // )
   }
 
   getParameterType(parameterType: ParameterType): String{

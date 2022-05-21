@@ -30,6 +30,14 @@ export class Execution {
      */
     timeout?: number;
     /**
+     * The result location
+     */
+    resultsLocation: String;
+    /**
+     * Executable location
+     */
+     executable: String;
+    /**
      * The status of the execution. Must always be present in responses.
      */
     readonly status?: StatusEnum;
