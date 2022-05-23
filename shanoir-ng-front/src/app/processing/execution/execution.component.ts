@@ -8,6 +8,9 @@ import { Pipeline } from 'src/app/carmin/models/pipeline';
 import { CarminClientService } from 'src/app/carmin/shared/carmin-client.service';
 import { MsgBoxService } from 'src/app/shared/msg-box/msg-box.service';
 import { ProcessingService } from '../processing.service';
+import { KeycloakService } from 'src/app/shared/keycloak/keycloak.service';
+
+
 
 @Component({
   selector: 'app-execution',
@@ -19,8 +22,9 @@ export class ExecutionComponent implements OnInit {
   pipeline: Pipeline;
   executionForm: FormGroup;
   selectedDatasets: Set<number>;
+  token:String;
 
-  constructor(private breadcrumbsService: BreadcrumbsService, private processingService: ProcessingService, private carminClientService:CarminClientService, private router:Router,private msgService: MsgBoxService) { 
+  constructor(private breadcrumbsService: BreadcrumbsService, private processingService: ProcessingService, private carminClientService:CarminClientService, private router:Router,private msgService: MsgBoxService, private keycloakService: KeycloakService) { 
     this.breadcrumbsService.nameStep('2. Execution');
     this.selectedDatasets = new Set();
   }
@@ -41,6 +45,16 @@ export class ExecutionComponent implements OnInit {
         this.selectedDatasets = datasets;
       }
     )
+    
+    this.keycloakService.getToken().then(
+      (token)=>{
+        this.token = token;
+      }
+    ).catch(
+      (err)=>{
+        console.error(err)
+      }
+    );
   }
 
   initExecutionForm(){
@@ -73,12 +87,20 @@ export class ExecutionComponent implements OnInit {
         if(parameter.type == ParameterType.File){
           // TODO this  platform identifier ("shanoir") should be in a constant file
           // TODO the file order should be specified automaticaly, with the help of the UI or the order.
-          execution.inputValues[parameter.name]= "shanoir:"+[...this.selectedDatasets][0];
-        }else{
+           execution.inputValues[parameter.name]= "shanoir:/download"+[...this.selectedDatasets][0]+".dcm?format=dcm&datasetId="+[...this.selectedDatasets][0]+"&token="+this.token+"&refreshToken=qsjdqmskldmsqd&outName="+this.executionForm.get("out_name").value+".tgz&md5=none&type=File";
+           if(parameter.name=="executable"){
+	      execution.inputValues[parameter.name]= "file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz";
+ 	   }
+	 }else{
           execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
         }
       }
     )
+    /*
+     * Init result location
+     */
+    execution.resultsLocation = "shanoir:/download"+[...this.selectedDatasets][0]+".dcm?format=dcm&datasetId="+[...this.selectedDatasets][0]+"&token="+this.token+"&refreshToken=qsjdqmskldmsqd&outName="+this.executionForm.get("out_name").value+".tgz&md5=none&type=File";
+    console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
       (_)=>{
           console.log("executed !");

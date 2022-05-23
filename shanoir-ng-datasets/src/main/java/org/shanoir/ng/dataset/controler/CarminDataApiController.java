@@ -116,12 +116,6 @@ public class CarminDataApiController implements CarminDataApi{
     }
 
     @Override
-    public ResponseEntity<org.shanoir.ng.dataset.model.carmin.Path> uploadPath(@ApiParam(value = "The complete path on which to upload data. It can contain non-encoded slashes.", required=true) @PathVariable("completePath") String completePath, @ApiParam(value = "") @Valid @RequestBody UploadData body) {
-        // TODO To implement
-        return new ResponseEntity<org.shanoir.ng.dataset.model.carmin.Path>(HttpStatus.NOT_IMPLEMENTED);
-    }
-
-    @Override
     public ResponseEntity<Void> deletePath(@ApiParam(value = "The complete path to delete. It can contain non-encoded slashes.", required=true) @PathVariable("completePath") String completePath) {
         // TODO to implement
         return new ResponseEntity<Void>(HttpStatus.NOT_IMPLEMENTED);
