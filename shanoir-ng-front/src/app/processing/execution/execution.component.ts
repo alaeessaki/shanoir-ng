@@ -76,7 +76,7 @@ export class ExecutionComponent implements OnInit {
         let validators:ValidatorFn[] = [];
         if(!parameter.isOptional) validators.push(Validators.required);
         let control = new FormControl(parameter.defaultValue, validators);
-        this.executionForm.addControl(parameter.name, control);
+        if(parameter.name != "executable")this.executionForm.addControl(parameter.name, control);
       }
     )
   }
@@ -91,8 +91,12 @@ export class ExecutionComponent implements OnInit {
       parameter=>{
         console.log(parameter)
         if(parameter.type == ParameterType.File){
-          let dataset = this.executionForm.get(parameter.name).value;
-          execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.dcm?format=dcm&datasetId=${dataset.id}token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
+           if(parameter.name=="executable"){
+	      execution.inputValues[parameter.name]= "/vip/Support (group)/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz";
+ 	   }else{
+	      let dataset = this.executionForm.get(parameter.name).value;
+              execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.dcm?format=dcm&datasetId=${dataset.id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
+	   }         
         }else{
           execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
         }
@@ -101,20 +105,18 @@ export class ExecutionComponent implements OnInit {
     /**
      * Init result location
      */
-    execution.resultsLocation = `shanoir:/download${[...this.selectedDatasets][0].id}".dcm?format=dcm&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}"&md5=none&type=File`;
-
-    execution.executable="file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz"
+    execution.resultsLocation = `shanoir:/${[...this.selectedDatasets][0].name}?format=dcm&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
     
     console.log(execution);
-    // this.carminClientService.createExecution(execution).subscribe(
-    //   (_)=>{
-    //       console.log("executed !");
-    //       this.msgService.log('info', 'the execution successfully started.')
-    //   },
-    //   (error)=>{
-    //       this.msgService.log('error', 'Sorry, an error occurred while starting the execution.');
-    //   }
-    // )
+    this.carminClientService.createExecution(execution).subscribe(
+      (_)=>{
+          console.log("executed !");
+          this.msgService.log('info', 'the execution successfully started.')
+      },
+      (error)=>{
+          this.msgService.log('error', 'Sorry, an error occurred while starting the execution.');
+      }
+    )
   }
 
   getParameterType(parameterType: ParameterType): String{
