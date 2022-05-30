@@ -61,7 +61,7 @@ export class ExecutionComponent implements OnInit {
     )
     this.keycloakService.getRefreshToken().then(
       (refreshToken: String)=>{
-        this.refreshToken = refreshToken;
+	this.refreshToken = refreshToken; 
       }
     )
   }

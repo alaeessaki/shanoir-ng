@@ -78,21 +78,16 @@ export class KeycloakService {
     }
 
     getRefreshToken(): Promise<string> {
-        if (!this.gettingToken) {
-            this.gettingToken = true;
-            this.tokenPromise = new Promise<string>((resolve, reject) => {
-                if (KeycloakService.auth.authz.token) {
-                    KeycloakService.auth.authz.updateToken(5).success(() => {
-                        this.gettingToken = false;
-                        resolve(<string>KeycloakService.auth.authz.refreshToken);
-                    }).error(() => {
-                        reject();
-                    });
-                }
-            });
-        }
+        this.tokenPromise = new Promise<string>((resolve, reject) => {
+            if (KeycloakService.auth.authz.token) {
+                resolve(<string>KeycloakService.auth.authz.refreshToken);
+            } else {
+                reject();
+            }
+        });
         return this.tokenPromise;
     }
+
 
     isUserAdmin(): boolean {
         return KeycloakService.auth.authz && KeycloakService.auth.authz.hasRealmRole("ROLE_ADMIN");
