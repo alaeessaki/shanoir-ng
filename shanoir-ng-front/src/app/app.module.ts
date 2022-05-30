@@ -251,6 +251,7 @@ import { PipelinesComponent } from './processing/pipelines/pipelines.component';
 import { CarminClientService } from './carmin/shared/carmin-client.service';
 import { PipelineComponent } from './processing/pipelines/pipeline/pipeline.component';
 import { ExecutionComponent } from './processing/execution/execution.component';
+import { CarminDatasetProcessingService } from './carmin/shared/processing/carmin-dataset-processing.service';
 
 @NgModule({
     imports: [
@@ -451,6 +452,7 @@ import { ExecutionComponent } from './processing/execution/execution.component';
         ConfirmDialogService,
         ExaminationService,
         CarminClientService,
+        CarminDatasetProcessingService,
         {
             provide: ErrorHandler,
             useClass: HandleErrorService

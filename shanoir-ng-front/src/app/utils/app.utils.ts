@@ -126,6 +126,8 @@ export const BACKEND_API_PRECLINICAL_MS_URL: string = BACKEND_API_URL + '/precli
 // carmin
 // TODO change the url
 export const CARMIN_BASE_URL : string = BACKEND_API_URL + "/vip/rest";
+// Carmin Dataset Processing api
+export const BACKEND_API_CARMIN_DATASET_PROCESSING_URL : string = BACKEND_API_DATASET_MS_URL + '/carminDatasetProcessing';
 
 export function hasUniqueError(error: any, fieldName: string): boolean {
     let hasUniqueError = false;

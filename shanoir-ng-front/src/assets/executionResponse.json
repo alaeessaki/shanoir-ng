@@ -1,0 +1,24 @@
+{
+    "identifier": "workflow-0OEKpv",
+    "name": "execution from shanoir form 1",
+    "pipelineIdentifier": "testGME2inputFiles/1.0",
+    "timeout": 0,
+    "status": "Running",
+    "inputValues": {
+        "out_name": "GME",
+        "second_file": "/download2.dcm",
+        "results-directory": "/download2.dcm",
+        "executable": "/vip/Support (group)/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz",
+        "first_file": "/download2.dcm"
+    },
+    "returnedFiles": {
+        "tgz_result": [
+            "/download2.dcm/GME.tgz"
+        ]
+    },
+    "studyIdentifier": null,
+    "errorCode": null,
+    "startDate": 1650892596000,
+    "endDate": null,
+    "resultsLocation": null
+}

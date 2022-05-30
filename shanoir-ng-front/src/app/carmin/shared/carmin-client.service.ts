@@ -60,6 +60,15 @@ export class CarminClientService {
   }
 
   /**
+   * @Khalil test mock execution   
+   * @returns 
+   */
+  public createTestExecution() : Observable<Execution> {
+    return this.httpClient.get<Execution>("assets/executionResponse.json");
+  }
+
+  
+  /**
    * Delete an execution
    * This will kill the underlying processes (if possible) and free all resources associated with this execution (if deleteFiles parameter is present and true)
    * @param executionIdentifier
