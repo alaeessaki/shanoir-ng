@@ -95,7 +95,7 @@ export class ExecutionComponent implements OnInit {
 	      execution.inputValues[parameter.name]= "file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz";
  	   }else{
 	      let dataset = this.executionForm.get(parameter.name).value;
-              execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.dcm?format=dcm&datasetId=${dataset.id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
+              execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.dcm?format=nii&datasetId=${dataset.id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
 	   }         
         }else{
           execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
@@ -105,7 +105,7 @@ export class ExecutionComponent implements OnInit {
     /**
      * Init result location
      */
-    execution.resultsLocation = `shanoir:/${[...this.selectedDatasets][0].name}_${[...this.selectedDatasets][0].id}.dcm?format=dcm&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}.tgz&md5=none&type=File`;
+    execution.resultsLocation = `shanoir:/${[...this.selectedDatasets][0].name}_${[...this.selectedDatasets][0].id}.dcm?format=nii&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}.tgz&md5=none&type=File`;
     
     console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
