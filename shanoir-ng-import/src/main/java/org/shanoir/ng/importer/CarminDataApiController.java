@@ -22,6 +22,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.shanoir.ng.importer.model.carmin.UploadData;
 import org.shanoir.ng.shared.exception.ErrorModel;
 import org.shanoir.ng.shared.exception.RestServiceException;
+import org.shanoir.ng.utils.ImportUtils;
+import org.shanoir.ng.utils.KeycloakUtil;
 import org.shanoir.ng.importer.model.carmin.Path;
 import org.shanoir.ng.importer.model.carmin.TypeEnum;
 import org.slf4j.Logger;
@@ -45,6 +47,11 @@ import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * Carmin data upload results from VIP to tmp folder endpoint
+ * 
+ * @author KhalilKes
+ */
 @Controller
 public class CarminDataApiController implements CarminDataApi {
 
@@ -66,18 +73,22 @@ public class CarminDataApiController implements CarminDataApi {
 
         try {
 
-            // Creates tmp folder for uploads
-            String uploadTempPath = importDir + File.separator + VIP_UPLOAD_FOLDER;
-            final File uploadTmpDir = new File(uploadTempPath);
-            if (!uploadTmpDir.exists()) {
-                uploadTmpDir.mkdirs();
-            }
-
             // creates file from the base64 string
             String uploadFileName = completePath;
 
+             // create unique user directory 
+             long n = ImportUtils.createRandomLong();
+             final Long userId = KeycloakUtil.getTokenUserId();
+             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + Long.toString(userId) + File.separator
+                     + Long.toString(n);
+             final File userImportDir = new File(userImportDirFilePath);
+             if (!userImportDir.exists()) {
+                 userImportDir.mkdirs();
+             }
+
             if (TypeEnum.FILE.equals(body.getType())) {
-                File destinationUploadFile = new File(uploadTmpDir.getAbsolutePath(), uploadFileName);
+
+                File destinationUploadFile = new File(userImportDir.getAbsolutePath(), uploadFileName);
                 byte[] bytes = Base64.decodeBase64(body.getBase64Content());
                 FileUtils.writeByteArrayToFile(destinationUploadFile, bytes);
 
@@ -87,12 +98,13 @@ public class CarminDataApiController implements CarminDataApi {
                 path.setLastModificationDate(new Date().getTime());
 
             } else if (TypeEnum.ARCHIVE.equals(body.getType())) {
+
                 // zip file handling
-                File destinationUploadFile = new File(uploadTmpDir.getAbsolutePath(), uploadFileName);
+                File destinationUploadFile = new File(userImportDir.getAbsolutePath(), uploadFileName);
                 byte[] bytes = Base64.decodeBase64(body.getBase64Content());
                 FileUtils.writeByteArrayToFile(destinationUploadFile, bytes);
 
-                String unzipDirPath = uploadTmpDir.getAbsolutePath() + File.separator
+                String unzipDirPath = userImportDir.getAbsolutePath() + File.separator
                         + FilenameUtils.getBaseName(uploadFileName);
                 final File unzipDir = new File(unzipDirPath);
                 unzipDir.mkdirs();
@@ -100,10 +112,11 @@ public class CarminDataApiController implements CarminDataApi {
 
                 path.setPlatformPath(unzipDir.getAbsolutePath());
                 path.setIsDirectory(true);
-                //sum of the size of all files within the directory 
-                long size = Files.walk(unzipDir.toPath()).mapToLong( p -> p.toFile().length() ).sum();
+                // sum of the size of all files within the directory
+                long size = Files.walk(unzipDir.toPath()).mapToLong(p -> p.toFile().length()).sum();
                 path.setSize(size);
                 path.setLastModificationDate(new Date().getTime());
+                
             } else {
                 throw new RestServiceException(
                         new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Bad arguments", null));
@@ -121,10 +134,16 @@ public class CarminDataApiController implements CarminDataApi {
     @Override
     public ResponseEntity<Void> deletePath(
             @ApiParam(value = "The complete path to delete. It can contain non-encoded slashes.", required = true) @PathVariable("completePath") String completePath) {
-        // TODO to implement
+        // TODO implementation
         return new ResponseEntity<Void>(HttpStatus.NOT_IMPLEMENTED);
     }
 
+    /**
+     * util unzip method
+     * 
+     * @param zipFilePath
+     * @param destDir
+     */
     private void unzip(String zipFilePath, String destDir) {
         File dir = new File(destDir);
         // create output directory if it doesn't exist
