@@ -59,14 +59,6 @@ export class CarminClientService {
     return this.httpClient.post<Execution>(`${this.basePath}/executions`,execution);
   }
 
-  /**
-   * @Khalil test mock execution   
-   * @returns 
-   */
-  public createTestExecution() : Observable<Execution> {
-    return this.httpClient.get<Execution>("assets/executionResponse.json");
-  }
-
   
   /**
    * Delete an execution
