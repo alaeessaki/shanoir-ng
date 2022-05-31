@@ -7,17 +7,20 @@
     </div>
 
     <div *ngFor="let parameter of pipeline.parameters">
-        <label for="{{parameter.name}}">{{parameter.name}} {{parameter.isOptional ? '' : '*'}}</label>
-        <input *ngIf="!isAFile(parameter.type)" [type]="getParameterType(parameter.type)"
-            formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
-        <span *ngIf="isAFile(parameter.type)">
-            <select *ngIf="selectedDatasets else loading" formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
-                <option *ngFor="let dataset of selectedDatasets" [ngValue]="dataset">
-                    {{dataset.id}}_{{dataset.name}}
-                </option>
-            </select>
-            <ng-template #loading>Loading datasets...</ng-template>
-        </span>
+        
+        <div *ngIf="parameter.name != 'executable'">
+             <label for="{{parameter.name}}">{{parameter.name}} {{parameter.isOptional ? '' : '*'}}</label>
+             <input *ngIf="!isAFile(parameter.type)" [type]="getParameterType(parameter.type)"
+                    formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
+             <span *ngIf="isAFile(parameter.type)">
+                 <select *ngIf="selectedDatasets else loading" formControlName="{{parameter.name}}" name="{{parameter.name}}" id="{{parameter.name}}">
+                    <option *ngFor="let dataset of selectedDatasets" [ngValue]="dataset">
+                      {{dataset.id}}_{{dataset.name}}
+                    </option>
+                 </select>
+                 <ng-template #loading>Loading datasets...</ng-template>
+             </span>
+	</div>    
 
     </div>
     <!-- <div *ngIf="selectedDatasets">
