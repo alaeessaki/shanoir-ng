@@ -152,6 +152,9 @@ public class CarminDataApiController implements CarminDataApi{
 
         String datasetName = "";
         datasetName += dataset.getId() + "-" + dataset.getName();
+        if (dataset.getUpdatedMetadata() != null && dataset.getUpdatedMetadata().getComment() != null) {
+            datasetName += "-" + dataset.getUpdatedMetadata().getComment();
+        }
 
         String tmpFilePath = userDir + File.separator + datasetName + "_" + format;
 
@@ -165,6 +168,9 @@ public class CarminDataApiController implements CarminDataApi{
             Optional<Subject> subjectOpt = subjectRepo.findById(dataset.getSubjectId());
             if (subjectOpt.isPresent()) {
                 subjectName = subjectOpt.get().getName();
+            }
+            if (subjectName.contains("/")) {
+                subjectName = subjectName.replaceAll("/", "_");
             }
 
             if (DCM.equals(format)) {
@@ -180,7 +186,7 @@ public class CarminDataApiController implements CarminDataApi{
                     tmpFile.mkdirs();
                     // Download DICOMs in the temporary folder
                     getDatasetFilePathURLs(dataset, pathURLs, DatasetExpressionFormat.DICOM);
-                    downloader.downloadDicomFilesForURLs(pathURLs, workFolder, subjectName, dataset);
+                    downloader.downloadDicomFilesForURLs(pathURLs, tmpFile, subjectName, dataset);
 
                     // Convert them, sending to import microservice
                     boolean result = (boolean) this.rabbitTemplate.convertSendAndReceive(RabbitMQConfiguration.NIFTI_CONVERSION_QUEUE, converterId + ";" + tmpFile.getAbsolutePath());
