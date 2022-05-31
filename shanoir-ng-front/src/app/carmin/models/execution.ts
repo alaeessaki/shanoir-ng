@@ -32,11 +32,11 @@ export class Execution {
     /**
      * The result location
      */
-    resultsLocation: String;
+    resultsLocation: string;
     /**
      * Executable location
      */
-     executable: String;
+     executable: string;
     /**
      * The status of the execution. Must always be present in responses.
      */
