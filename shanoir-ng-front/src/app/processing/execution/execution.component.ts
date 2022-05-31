@@ -10,6 +10,7 @@ import { CarminClientService } from 'src/app/carmin/shared/carmin-client.service
 import { CarminDatasetProcessingService } from 'src/app/carmin/shared/carmin-dataset-processing.service';
 import { Dataset } from 'src/app/datasets/shared/dataset.model';
 import { DatasetService } from 'src/app/datasets/shared/dataset.service';
+import { DatasetProcessingType } from 'src/app/enum/dataset-processing-type.enum';
 import { KeycloakService } from 'src/app/shared/keycloak/keycloak.service';
 import { MsgBoxService } from 'src/app/shared/msg-box/msg-box.service';
 import { ProcessingService } from '../processing.service';
@@ -116,6 +117,8 @@ export class ExecutionComponent implements OnInit {
         
         let carminDatasetProcessing: CarminDatasetProcessing = new CarminDatasetProcessing(execution.identifier, execution.name, execution.pipelineIdentifier, execution.resultsLocation, execution.status, execution.timeout, execution.startDate, execution.endDate);
         carminDatasetProcessing.comment = execution.identifier;
+        carminDatasetProcessing.studyId = [...this.selectedDatasets][0].study.id;
+        carminDatasetProcessing.datasetProcessingType = DatasetProcessingType.SEGMENTATION;
         this.carminDatasetProcessing.saveNewCarminDatasetProcessing(carminDatasetProcessing).subscribe(
           (response)=>{
             console.log(response);
