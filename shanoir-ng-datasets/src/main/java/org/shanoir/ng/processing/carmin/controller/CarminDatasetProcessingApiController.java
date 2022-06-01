@@ -1,15 +1,13 @@
 package org.shanoir.ng.processing.carmin.controller;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
 import org.shanoir.ng.processing.carmin.dto.CarminDatasetProcessingDTO;
 import org.shanoir.ng.processing.carmin.dto.mapper.CarminDatasetProcessingMapper;
 import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
-import org.shanoir.ng.processing.carmin.schedule.ExecutionStatusMonitor;
+import org.shanoir.ng.processing.carmin.schedule.ExecutionStatusMonitorService;
 import org.shanoir.ng.processing.carmin.service.CarminDatasetProcessingService;
 import org.shanoir.ng.processing.model.DatasetProcessing;
 import org.shanoir.ng.processing.service.DatasetProcessingService;
@@ -42,7 +40,7 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
     private DatasetProcessingService datasetProcessingService;
 
     @Autowired
-    private ExecutionStatusMonitor executionStatusMonitor;
+    private ExecutionStatusMonitorService executionStatusMonitorService;
 
     @Override
     public ResponseEntity<CarminDatasetProcessingDTO> saveNewCarminDatasetProcessing(
@@ -59,8 +57,8 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
         /**
          * run monitoring job
          */
-        executionStatusMonitor.setIdentifier(carminDatasetProcessing.getIdentifier());
-        executionStatusMonitor.start();
+
+        executionStatusMonitorService.startJob(carminDatasetProcessing.getIdentifier());
 
         return new ResponseEntity<>(
                 datasetProcessingMapper.carminDatasetProcessingToCarminDatasetProcessingDTO(createdDatasetProcessing),

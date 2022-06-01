@@ -3,45 +3,40 @@ package org.shanoir.ng.processing.carmin.schedule;
 import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
 import org.shanoir.ng.processing.carmin.model.ExecutionStatus;
 import org.shanoir.ng.processing.carmin.service.CarminDatasetProcessingService;
-import org.shanoir.ng.processing.model.DatasetProcessing;
-import org.shanoir.ng.processing.service.DatasetProcessingService;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
-@Component
-public class ExecutionStatusMonitor extends Thread {
+@Service
+public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
-    private final String VIP_URI = "/";
-    private boolean stop = false;
+    // private final String VIP_URI = "/";
+    private boolean stop;
     private String identifier;
 
     private static final Logger LOG = LoggerFactory.getLogger(ExecutionStatusMonitor.class);
 
+    final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
     @Autowired
     private CarminDatasetProcessingService carminDatasetProcessingService;
 
-    @Autowired
-    private DatasetProcessingService datasetProcessingService;
-
-
+    @Async
     @Override
-    public void run() {
-
-        /**
-         * calls VIP api (needs keycloak token ??)
-         */
-        // RestTemplate restTemplate = new RestTemplate();
-        // Execution execution = restTemplate.getForObject(VIP_URI + identifier,
-        // Execution.class);
+    public void startJob(String identifier) {
+        this.identifier = identifier;
+        this.stop = false;
 
         Execution execution = new Execution("workflow-0OEKpv", ExecutionStatus.RUNNING);
 
         while (!stop) {
             try {
+
                 if (ExecutionStatus.FINISHED == execution.getStatus()) {
                     /**
                      * updates the status and finish the job
@@ -49,14 +44,13 @@ public class ExecutionStatusMonitor extends Thread {
                     LOG.info("finished execution...");
                     LOG.info(this.identifier);
 
-                    DatasetProcessing datasetProcessing = this.datasetProcessingService.findByComment(this.identifier)
-                            .orElseThrow(() -> new EntityNotFoundException("not found by :" + this.identifier));
-                    LOG.info(datasetProcessing.getComment());
-
-                    CarminDatasetProcessing carminDatasetProcessing = (CarminDatasetProcessing) datasetProcessing;
+                    CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
+                            .getCarminDatasetProcessingByComment(this.identifier);
 
                     LOG.info(carminDatasetProcessing.getIdentifier());
+
                     carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
+
                     this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
                             carminDatasetProcessing);
 
@@ -75,21 +69,9 @@ public class ExecutionStatusMonitor extends Thread {
             } catch (EntityNotFoundException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
-            }
+            } 
 
         }
-
     }
 
-
-    public String getIdentifier() {
-        return identifier;
-    }
-
-
-    public void setIdentifier(String identifier) {
-        this.identifier = identifier;
-    }
-
-    
 }
