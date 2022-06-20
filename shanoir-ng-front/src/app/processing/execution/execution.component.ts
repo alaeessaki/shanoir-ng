@@ -86,46 +86,51 @@ export class ExecutionComponent implements OnInit {
 
   onSubmitExecutionForm() {
     let execution: Execution = new Execution();
+    
     execution.name = this.executionForm.get("execution_name").value;
     execution.pipelineIdentifier = this.pipeline.identifier;
     execution.timeout = 20;
     execution.inputValues = {};
+
     this.pipeline.parameters.forEach(
       parameter => {
-        console.log(parameter)
-        if(parameter.type == ParameterType.File){
-           if(parameter.name=="executable"){
-	      execution.inputValues[parameter.name]= "file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFiles/1.0/bin/testGME2inputFiles.sh.tar.gz";
- 	   }else{
-	      let dataset = this.executionForm.get(parameter.name).value;
-              execution.inputValues[parameter.name]= `shanoir:/${dataset.name}_${dataset.id}.nii.zip?format=nii&datasetId=${dataset.id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}&md5=none&type=File`;
-	   }         
-        }else{
-          execution.inputValues[parameter.name]=this.executionForm.get(parameter.name).value;
+        if (parameter.type == ParameterType.File) {
+          if (parameter.name == "executable") {
+            // change the execution if you want to run another pipeline
+            execution.inputValues[parameter.name] = "file:/var/www/html/workflows/SharedData/groups/Support/Applications/testGME2inputFilesUpdated/1.0/bin/testGME2inputFilesUpdated.sh.tar.gz";
+
+          } else {
+            let dataset = this.executionForm.get(parameter.name).value;
+            let dataset_name = `id+${dataset.id}+${dataset.name.replace(/ /g,"_")}.nii.zip`
+            execution.inputValues[parameter.name] = `shanoir:/${dataset_name}?format=nii&datasetId=${dataset.id}&token=${this.token}&refreshToken=${this.refreshToken}&md5=none&type=File`;
+          }
+        } else {
+          execution.inputValues[parameter.name] = this.executionForm.get(parameter.name).value;
         }
       }
     )
     /**
      * Init result location
+     * The result directory should be dynamic
      */
-    execution.resultsLocation = `shanoir:/${[...this.selectedDatasets][0].name}_${[...this.selectedDatasets][0].id}.nii.zip?format=nii&datasetId=${[...this.selectedDatasets][0].id}&token=${this.token}&refreshToken=${this.refreshToken}&outName=${this.executionForm.get("out_name").value}.tgz&md5=none&type=File`;
+    let resultPath ="1/86757567222"
+    execution.resultsLocation = `shanoir:/${resultPath}?token=${this.token}&refreshToken=${this.refreshToken}&md5=none&type=File`;
     console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
       (execution: Execution) => {
-        console.log("executed !");
         this.msgService.log('info', 'the execution successfully started.')
-        
+
         let carminDatasetProcessing: CarminDatasetProcessing = new CarminDatasetProcessing(execution.identifier, execution.name, execution.pipelineIdentifier, execution.resultsLocation, execution.status, execution.timeout, execution.startDate, execution.endDate);
+        
         carminDatasetProcessing.comment = execution.identifier;
         carminDatasetProcessing.studyId = [...this.selectedDatasets][0].study.id;
         carminDatasetProcessing.datasetProcessingType = DatasetProcessingType.SEGMENTATION;
+        
         this.carminDatasetProcessing.saveNewCarminDatasetProcessing(carminDatasetProcessing).subscribe(
-          (response)=>{
-            console.log(response);
-            console.log("executed !");
-            this.msgService.log('info', 'Dataset Processing is created !')    
+          (response) => {
+            this.msgService.log('info', 'Dataset Processing is created !')
           },
-          (error)=>{
+          (error) => {
             this.msgService.log('error', 'Sorry, an error occurred while creating dataset processing.');
             console.error(error);
           }

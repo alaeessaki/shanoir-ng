@@ -21,4 +21,6 @@
 }
 .name{
     margin-top: 10px;
+    word-break: break-all;
+    white-space: normal;
 }
