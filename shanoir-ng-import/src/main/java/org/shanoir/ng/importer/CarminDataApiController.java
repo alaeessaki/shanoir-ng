@@ -91,13 +91,10 @@ public class CarminDataApiController implements CarminDataApi {
             String [] pathItems = completePath.split("/");
             String uploadFileName = pathItems[pathItems.length - 1];
 
-            //TODO creates the result path from the request
+             // create unique user directory from the completePath
+             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + pathItems[1] + File.separator
+                     + pathItems[2];
 
-             // create unique user directory 
-             long n = ImportUtils.createRandomLong();
-             final Long userId = KeycloakUtil.getTokenUserId();
-             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + Long.toString(userId) + File.separator
-                     + Long.toString(n);
              final File userImportDir = new File(userImportDirFilePath);
              if (!userImportDir.exists()) {
                  userImportDir.mkdirs();
@@ -155,7 +152,6 @@ public class CarminDataApiController implements CarminDataApi {
         return new ResponseEntity<Void>(HttpStatus.NOT_IMPLEMENTED);
     }
 
- 
     /**
      * 
      * @param request
@@ -163,13 +159,11 @@ public class CarminDataApiController implements CarminDataApi {
      */
     private String extractPathFromRequest(HttpServletRequest request) {
         String decodedUri = UriUtils.decode(request.getRequestURI(), "UTF-8");
-        LOG.info(decodedUri);
-
         int index = decodedUri.indexOf(PATH_PREFIX);
         
         return decodedUri.substring(index + PATH_PREFIX.length() - 1);
-
     }
+
     /**
      * util unzip method
      * 
