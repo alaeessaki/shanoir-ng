@@ -5,7 +5,11 @@ import java.util.Optional;
 import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
 import org.shanoir.ng.processing.model.DatasetProcessing;
 import org.shanoir.ng.processing.repository.DatasetProcessingRepository;
+import org.shanoir.ng.shared.event.ShanoirEvent;
+import org.shanoir.ng.shared.event.ShanoirEventService;
+import org.shanoir.ng.shared.event.ShanoirEventType;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
+import org.shanoir.ng.utils.KeycloakUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +19,12 @@ public class CarminDatasetPorcessingServiceImpl implements CarminDatasetProcessi
     @Autowired
     private DatasetProcessingRepository datasetProcessingRepository;
 
+    @Autowired
+    private ShanoirEventService eventService;
+
     protected CarminDatasetProcessing updateValues(CarminDatasetProcessing from, CarminDatasetProcessing to) {
         to.setIdentifier(from.getIdentifier());
         to.setStatus(from.getStatus());
-        ;
         to.setName(from.getName());
         to.setPipelineIdentifier(from.getPipelineIdentifier());
         to.setStartDate(from.getStartDate());
@@ -31,7 +37,19 @@ public class CarminDatasetPorcessingServiceImpl implements CarminDatasetProcessi
 
     @Override
     public CarminDatasetProcessing create(final CarminDatasetProcessing carminDatasetProcessing) {
+        ShanoirEvent event = new ShanoirEvent(ShanoirEventType.IMPORT_DATASET_EVENT,
+                carminDatasetProcessing.getResultsLocation(), KeycloakUtil.getTokenUserId(), "Starting import...",
+                ShanoirEvent.IN_PROGRESS, 0f);
+        eventService.publishEvent(event);
+
         CarminDatasetProcessing savedEntity = datasetProcessingRepository.save(carminDatasetProcessing);
+
+        event.setStatus(ShanoirEvent.SUCCESS);
+        event.setMessage(carminDatasetProcessing.getPipelineIdentifier() + "(" + carminDatasetProcessing.getStudyId() + ")"
+                + ": Successfully created carmin dataset processing ");
+        event.setProgress(1f);
+        eventService.publishEvent(event);
+
         return savedEntity;
     }
 
@@ -51,7 +69,8 @@ public class CarminDatasetPorcessingServiceImpl implements CarminDatasetProcessi
 
     @Override
     public CarminDatasetProcessing getCarminDatasetProcessingByComment(String comment) throws EntityNotFoundException {
-        return (CarminDatasetProcessing) datasetProcessingRepository.findByComment(comment).orElseThrow(()-> new EntityNotFoundException("carminDatasetProcessing not found with : " + comment));
+        return (CarminDatasetProcessing) datasetProcessingRepository.findByComment(comment)
+                .orElseThrow(() -> new EntityNotFoundException("carminDatasetProcessing not found with : " + comment));
     }
 
 }
