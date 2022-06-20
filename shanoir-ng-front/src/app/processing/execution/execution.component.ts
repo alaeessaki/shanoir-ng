@@ -113,14 +113,15 @@ export class ExecutionComponent implements OnInit {
      * Init result location
      * The result directory should be dynamic
      */
-    let resultPath ="1/86757567222"
+    let resultPath = this.generateResultPath();
+    
     execution.resultsLocation = `shanoir:/${resultPath}?token=${this.token}&refreshToken=${this.refreshToken}&md5=none&type=File`;
     console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
       (execution: Execution) => {
         this.msgService.log('info', 'the execution successfully started.')
 
-        let carminDatasetProcessing: CarminDatasetProcessing = new CarminDatasetProcessing(execution.identifier, execution.name, execution.pipelineIdentifier, execution.resultsLocation, execution.status, execution.timeout, execution.startDate, execution.endDate);
+        let carminDatasetProcessing: CarminDatasetProcessing = new CarminDatasetProcessing(execution.identifier, execution.name, execution.pipelineIdentifier, resultPath, execution.status, execution.timeout, execution.startDate, execution.endDate);
         
         carminDatasetProcessing.comment = execution.identifier;
         carminDatasetProcessing.studyId = [...this.selectedDatasets][0].study.id;
@@ -156,6 +157,10 @@ export class ExecutionComponent implements OnInit {
   isAFile(parameterType: ParameterType): boolean {
     if (parameterType == ParameterType.File) return true;
     return false;
+  }
+
+  private generateResultPath(){
+    return this.keycloakService.getUserId + "/" + Date.now();
   }
 
 }

@@ -104,4 +104,8 @@ export class KeycloakService {
     canUserImportFromPACS(): boolean {
         return this.isUserAdmin() || KeycloakService.auth.authz && KeycloakService.auth.authz.tokenParsed.canImportFromPACS;
     }
+
+    getUserId(){
+        return KeycloakService.auth.userId;
+    }
 }
