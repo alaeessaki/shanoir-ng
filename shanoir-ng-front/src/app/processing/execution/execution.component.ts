@@ -114,7 +114,6 @@ export class ExecutionComponent implements OnInit {
      * The result directory should be dynamic
      */
     let resultPath = this.generateResultPath();
-    
     execution.resultsLocation = `shanoir:/${resultPath}?token=${this.token}&refreshToken=${this.refreshToken}&md5=none&type=File`;
     console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
@@ -160,7 +159,7 @@ export class ExecutionComponent implements OnInit {
   }
 
   private generateResultPath(){
-    return this.keycloakService.getUserId + "/" + Date.now();
+    return this.keycloakService.getUserId() + "/" + Date.now();
   }
 
 }
