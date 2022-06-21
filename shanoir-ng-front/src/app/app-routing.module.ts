@@ -89,6 +89,7 @@ import { DUAComponent } from './dua/dua.component';
 import { ProcessingComponent } from './processing/processing.component';
 import { PipelinesComponent } from './processing/pipelines/pipelines.component';
 import { ExecutionComponent } from './processing/execution/execution.component';
+import { CarminDatasetProcessingsComponent } from './carmin/carmin-dataset-processings/carmin-dataset-processings.component';
 
 let routes: Routes = [
     {
@@ -115,6 +116,10 @@ let routes: Routes = [
     }, {
         path: 'solr-search',
         component: SolrSearchComponent
+    },
+    {
+        path: 'carmin-dataset-processings',
+        component: CarminDatasetProcessingsComponent
     }, {
         path: 'processing',
         component: ProcessingComponent,

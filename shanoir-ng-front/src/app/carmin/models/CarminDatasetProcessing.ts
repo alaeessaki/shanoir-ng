@@ -28,11 +28,11 @@ export class CarminDatasetProcessing extends DatasetProcessing {
     endDate?: number;
 
     constructor(
-        identifier: string,
-        name: string,
-        pipelineIdentifier: string,
-        resultsLocation: string,
-        status: StatusEnum,
+        identifier?: string,
+        name?: string,
+        pipelineIdentifier?: string,
+        resultsLocation?: string,
+        status?: StatusEnum,
         timeout?: number,
         startDate?: number,
         endDate?: number,

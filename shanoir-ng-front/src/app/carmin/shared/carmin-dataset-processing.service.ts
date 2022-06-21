@@ -12,23 +12,31 @@
  * along with this program. If not, see https://www.gnu.org/licenses/gpl-3.0.html
  */
 
-import { Injectable } from "@angular/core";
+import { APP_ID, Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { CarminDatasetProcessing } from "../models/CarminDatasetProcessing";
 import * as AppUtils from "../../utils/app.utils";
 import { Observable } from "rxjs";
+import { EntityService } from "src/app/shared/components/entity/entity.abstract.service";
 
 
 @Injectable()
-export class CarminDatasetProcessingService {
+export class CarminDatasetProcessingService extends EntityService<CarminDatasetProcessing>{
 
-    basePath: string = AppUtils.BACKEND_API_CARMIN_DATASET_PROCESSING_URL;
+    API_URL: string = AppUtils.BACKEND_API_CARMIN_DATASET_PROCESSING_URL;
 
-    constructor(protected httpClient: HttpClient) { }
+    constructor(protected httpClient: HttpClient) { 
+        super(httpClient);
+    }
 
+    getEntityInstance() { return new CarminDatasetProcessing(); }
 
     public saveNewCarminDatasetProcessing(carminDatasetProcessing: CarminDatasetProcessing): Observable<Object> {
-        return this.httpClient.post<Object>(this.basePath, carminDatasetProcessing);
+        return this.httpClient.post<Object>(this.API_URL, carminDatasetProcessing);
+    }
+
+    public getAllCarminDatasetProcessings(): Observable<CarminDatasetProcessing[]>{
+        return this.httpClient.get<CarminDatasetProcessing[]>(`${this.API_URL}/carminDatasetProcessings`);
     }
 
 
