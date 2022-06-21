@@ -1,5 +1,6 @@
 package org.shanoir.ng.processing.carmin.controller;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.validation.Valid;
@@ -57,9 +58,9 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
 
     @Override
     public ResponseEntity<CarminDatasetProcessingDTO> findCarminDatasetProcessingByComment(
-            @ApiParam(value = "id of the dataset processing", required = true) @RequestParam("comment") String comment) {
+            @ApiParam(value = "id of the dataset processing", required = true) @RequestParam("identifier") String identifier) {
 
-        final Optional<DatasetProcessing> datasetProcessing = datasetProcessingService.findByComment(comment);
+        final Optional<DatasetProcessing> datasetProcessing = datasetProcessingService.findByComment(identifier);
         if (!datasetProcessing.isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -84,6 +85,16 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
         }
     }
 
+    @Override
+    public ResponseEntity<List<CarminDatasetProcessingDTO>> findCarminDatasetProcessings() {
+        final List<CarminDatasetProcessing> carminDatasetProcessings = carminDatasetProcessingService.getCarminDatasetProcessings();
+		if (carminDatasetProcessings.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+		}
+		return new ResponseEntity<>(datasetProcessingMapper.carminDatasetProcessingsToCarminDatasetProcessingDTOs(carminDatasetProcessings), HttpStatus.OK);
+    }
+
+
     private void validate(BindingResult result) throws RestServiceException {
         final FieldErrorMap errors = new FieldErrorMap(result);
         if (!errors.isEmpty()) {
@@ -92,5 +103,4 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
             throw new RestServiceException(error);
         }
     }
-
 }
