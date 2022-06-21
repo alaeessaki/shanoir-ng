@@ -32,36 +32,41 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
         this.identifier = identifier;
         this.stop = false;
 
-        Execution execution = new Execution("workflow-0OEKpv", ExecutionStatus.RUNNING);
-
         while (!stop) {
             try {
 
-                if (ExecutionStatus.FINISHED == execution.getStatus()) {
-                    /**
-                     * updates the status and finish the job
-                     */
-                    LOG.info("finished execution...");
-                    LOG.info(this.identifier);
+                // if (ExecutionStatus.FINISHED == execution.getStatus()) {
+                // /**
+                // * updates the status and finish the job
+                // */
 
-                    CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
-                            .getCarminDatasetProcessingByComment(this.identifier);
+                // CarminDatasetProcessing carminDatasetProcessing =
+                // this.carminDatasetProcessingService
+                // .getCarminDatasetProcessingByComment(this.identifier);
 
-                    LOG.info(carminDatasetProcessing.getIdentifier());
+                // carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
 
-                    carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
+                // this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
+                // carminDatasetProcessing);
 
-                    this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
-                            carminDatasetProcessing);
+                // LOG.info("execution status updated stopping job...");
 
-                    LOG.info("execution status updated stopping job...");
+                // stop = true;
+                // }
 
-                    stop = true;
-                }
+                Thread.sleep(40000);
 
-                LOG.info("Execution Status not finished yet ..." + execution.getStatus());
-                Thread.sleep(20000);
-                execution.setStatus(ExecutionStatus.FINISHED);
+                CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
+                        .getCarminDatasetProcessingByComment(this.identifier);
+
+                carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
+
+                this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
+                        carminDatasetProcessing);
+
+                LOG.info("execution status updated stopping job...");
+
+                stop = true;
 
             } catch (InterruptedException e) {
                 LOG.error("error in thread sleeping : ", e);
@@ -69,7 +74,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
             } catch (EntityNotFoundException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
-            } 
+            }
 
         }
     }

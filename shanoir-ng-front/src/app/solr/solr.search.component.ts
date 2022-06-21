@@ -35,10 +35,6 @@ import { StudyUserRight } from '../studies/shared/study-user-right.enum';
 import { FacetField, FacetResultPage, SolrDocument, SolrRequest, SolrResultPage } from './solr.document.model';
 import { Range } from '../shared/models/range.model';
 import { ProcessingService } from '../processing/processing.service';
-import { CarminClientService } from '../carmin/shared/carmin-client.service';
-import { CarminDatasetProcessing } from '../carmin/shared/processing/carmin-dataset-processing.model';
-import { CarminDatasetProcessingService } from '../carmin/shared/processing/carmin-dataset-processing.service';
-import { DatasetProcessingType } from '../enum/dataset-processing-type.enum';
 
 
 @Component({
@@ -95,8 +91,7 @@ export class SolrSearchComponent implements AfterViewChecked{
             private breadcrumbsService: BreadcrumbsService, private formBuilder: FormBuilder, private datePipe: DatePipe,
             private solrService: SolrService, private router: Router, private datasetService: DatasetService,
             private keycloakService: KeycloakService, private studyRightsService: StudyRightsService,
-            private confirmDialogService: ConfirmDialogService, private msgBoxService: MsgBoxService, private processingService: ProcessingService, 
-            private carminService:CarminClientService, private carminProcessingService:CarminDatasetProcessingService) {
+            private confirmDialogService: ConfirmDialogService, private msgBoxService: MsgBoxService, private processingService: ProcessingService) {
 
         this.getRole();
         if (this.role != 'admin') this.getRights();
@@ -507,24 +502,7 @@ export class SolrSearchComponent implements AfterViewChecked{
     }
     initExecutionMode(){
         this.processingService.setDatasets(this.selectedDatasetIds);
-        //this.router.navigate(['/processing']);
-
-        this.carminService.createTestExecution().subscribe(exec => {
-            console.log(exec);
-            let carminDatasetProcessing = new CarminDatasetProcessing(exec.identifier, exec.name, exec.pipelineIdentifier, "/tmp/vip-uploads/", exec.status, exec.timeout, exec.startDate);
-            carminDatasetProcessing.comment = exec.identifier;
-            carminDatasetProcessing.datasetProcessingType = DatasetProcessingType.SEGMENTATION;
-            carminDatasetProcessing.studyId = 1;
-
-            this.carminProcessingService.saveNewCarminDatasetProcessing(carminDatasetProcessing).then((res => {
-                
-                this.msgBoxService.log('info', 'Dataset Processing is created successfully')
-              
-            })).catch(error => {
-                throw new Error('Could not save datset processing, Cause : ' + error);
-            });
-        });
-
+        this.router.navigate(['/processing']);
     }
 
 }

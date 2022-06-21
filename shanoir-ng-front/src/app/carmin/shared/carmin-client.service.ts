@@ -52,19 +52,11 @@ export class CarminClientService {
    * @param body Execution
    */
   public createExecution(execution: Execution ): Observable<Execution> {
-
+    
     if (execution === null || execution === undefined) {
       throw new Error('Required parameter execution was null or undefined when calling createExecution.');
     }
     return this.httpClient.post<Execution>(`${this.basePath}/executions`,execution);
-  }
-
-  /**
-   * @Khalil test mock execution   
-   * @returns 
-   */
-  public createTestExecution() : Observable<Execution> {
-    return this.httpClient.get<Execution>("assets/executionResponse.json");
   }
 
   

@@ -45,10 +45,10 @@ public interface CarminDataApi {
             @ApiResponse(code = 201, message = "The upload is successful and finished.", response = Path.class),
 
             @ApiResponse(code = 200, message = "A functional or internal error occured processing the request") })
-    @RequestMapping(value = "/path/{completePath}",
+    @RequestMapping(value = "/**",
             produces = { "application/json" },
             consumes = { "application/carmin+json", "application/octet-stream" },
             method = RequestMethod.PUT)
-    ResponseEntity<Path> uploadPath(@ApiParam(value = "The complete path on which to upload data. It can contain non-encoded slashes.", required=true) @PathVariable("completePath") String completePath, @ApiParam(value = "") @Valid @RequestBody UploadData body) throws RestServiceException;
+    ResponseEntity<Path> uploadPath(@ApiParam(value = "") @Valid @RequestBody UploadData body) throws RestServiceException;
 
 }

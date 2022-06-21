@@ -28,13 +28,16 @@ import org.shanoir.ng.importer.model.carmin.Path;
 import org.shanoir.ng.importer.model.carmin.TypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.util.UriUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import java.io.File;
@@ -57,30 +60,41 @@ public class CarminDataApiController implements CarminDataApi {
 
     private static final String VIP_UPLOAD_FOLDER = "vip_uploads";
     private static final String ERROR_WHILE_SAVING_UPLOADED_FILE = "Error while saving uploaded file.";
+    private static final String PATH_PREFIX = "/carmin-data/path/";
 
     private static final Logger LOG = LoggerFactory.getLogger(CarminDataApiController.class);
+
+    private final HttpServletRequest httpServletRequest;
+
+    @Autowired
+    CarminDataApiController(HttpServletRequest httpServletRequest){
+        this.httpServletRequest = httpServletRequest;
+
+    }
 
     @Value("${shanoir.import.directory}")
     private String importDir;
 
     @Override
     public ResponseEntity<Path> uploadPath(
-            @ApiParam(value = "The complete path on which to upload data. It can contain non-encoded slashes.", required = true) @PathVariable("completePath") String completePath,
             @ApiParam(value = "") @Valid @RequestBody UploadData body)
             throws RestServiceException {
+
+        String completePath = extractPathFromRequest(httpServletRequest);
+        LOG.info(completePath);
 
         Path path = new Path();
 
         try {
 
             // creates file from the base64 string
-            String uploadFileName = completePath;
+            String [] pathItems = completePath.split("/");
+            String uploadFileName = pathItems[pathItems.length - 1];
 
-             // create unique user directory 
-             long n = ImportUtils.createRandomLong();
-             final Long userId = KeycloakUtil.getTokenUserId();
-             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + Long.toString(userId) + File.separator
-                     + Long.toString(n);
+             // create unique user directory from the completePath
+             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + pathItems[1] + File.separator
+                     + pathItems[2];
+
              final File userImportDir = new File(userImportDirFilePath);
              if (!userImportDir.exists()) {
                  userImportDir.mkdirs();
@@ -136,6 +150,18 @@ public class CarminDataApiController implements CarminDataApi {
             @ApiParam(value = "The complete path to delete. It can contain non-encoded slashes.", required = true) @PathVariable("completePath") String completePath) {
         // TODO implementation
         return new ResponseEntity<Void>(HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    /**
+     * 
+     * @param request
+     * @return
+     */
+    private String extractPathFromRequest(HttpServletRequest request) {
+        String decodedUri = UriUtils.decode(request.getRequestURI(), "UTF-8");
+        int index = decodedUri.indexOf(PATH_PREFIX);
+        
+        return decodedUri.substring(index + PATH_PREFIX.length() - 1);
     }
 
     /**

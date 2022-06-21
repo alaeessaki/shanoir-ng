@@ -13,7 +13,7 @@
  */
 
 import { DatasetProcessing } from "src/app/datasets/shared/dataset-processing.model";
-import { StatusEnum } from "../../models/execution";
+import { StatusEnum } from "./execution";
 
 
 export class CarminDatasetProcessing extends DatasetProcessing {
@@ -28,26 +28,25 @@ export class CarminDatasetProcessing extends DatasetProcessing {
     endDate?: number;
 
     constructor(
-        identifier: string,
-        name: string,
-        pipelineIdentifier: string,
-        resultsLocation: string,
-        status: StatusEnum,
+        identifier?: string,
+        name?: string,
+        pipelineIdentifier?: string,
+        resultsLocation?: string,
+        status?: StatusEnum,
         timeout?: number,
         startDate?: number,
         endDate?: number,
     ) {
-    super();
-    this.identifier = identifier;
-    this.name = name;
-    this.pipelineIdentifier = pipelineIdentifier;
-    this.resultsLocation = resultsLocation;
-    this.status = status;
-    this.timeout = timeout;
-    this.startDate = startDate;
-    this.endDate = endDate
+        super();
+        this.identifier = identifier;
+        this.name = name;
+        this.pipelineIdentifier = pipelineIdentifier;
+        this.resultsLocation = resultsLocation;
+        this.status = status;
+        this.timeout = timeout;
+        this.startDate = startDate;
+        this.endDate = endDate
 
     }
 
 }
-
