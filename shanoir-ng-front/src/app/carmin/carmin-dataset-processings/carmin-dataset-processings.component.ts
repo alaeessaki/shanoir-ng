@@ -27,9 +27,9 @@ export class CarminDatasetProcessingsComponent extends EntityListComponent<Carmi
   ngAfterViewInit(): void {
     this.subscribtions.push(
       this.carminDatasetProcessingService.getAllCarminDatasetProcessings().subscribe(caminDatasetProcessings => {
-        if(caminDatasetProcessings == null){
+        if (caminDatasetProcessings == null) {
           this.caminDatasetProcessings = [];
-        }else{
+        } else {
           this.caminDatasetProcessings = caminDatasetProcessings;
         }
         this.table.refresh();
@@ -57,35 +57,22 @@ export class CarminDatasetProcessingsComponent extends EntityListComponent<Carmi
       return null;
     };
     return [
+      {headerName: "ID", field: "id", width: '130px', defaultSortCol: true, defaultAsc: false},
       {
-        headerName: 'Message', field: 'message', width: '100%', type: 'link',
+        headerName: 'Name', field: 'name', width: '100%', type: 'link',
         route: (carminDatasetProcessing: CarminDatasetProcessing) => {
           // return the link of the carmin dataset processing + id
-          return '/home';
+          return `/dataset-processing/details/${carminDatasetProcessing.id}`;
+        }
+      },
+      { headerName: 'Status', field: 'status', width: '70px', type: 'Status' },
+      {
+        headerName: "Creation", field: "startDate", width: '130px', cellRenderer: function (params: any) {
+          return dateRenderer(params.data.startDate);
         }
       },
       {
-        headerName: 'Status', field: 'status', width: '70px', type: 'Status', cellRenderer: function (params: any) {
-          if (params.data.status == 2) {
-            return "In progress"
-          }
-          if (params.data.status == 1) {
-            return { text: 'Success', color: 'darkgreen' }
-          }
-          if (params.data.status == -1) {
-            return { text: 'Error', color: 'red' }
-          }
-        }
-      },
-      {
-        headerName: "Creation", field: "creationDate", width: '130px', cellRenderer: function (params: any) {
-          return dateRenderer(params.data.creationDate);
-        }
-      },
-      {
-        headerName: "Last update", field: "lastUpdate", width: '130px', defaultSortCol: true, defaultAsc: false, cellRenderer: function (params: any) {
-          return dateRenderer(params.data.lastUpdate);
-        }
+        headerName: "Workflow ID", field: "comment", width: '130px'
       },
     ];
   }
