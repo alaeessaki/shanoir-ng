@@ -57,7 +57,7 @@ export class DatasetProcessingComponent extends EntityComponent<DatasetProcessin
     private outputDatasetsToRemove: Dataset[] = [];
     public inputDatasetsColumnDefs: any[];
     public outputDatasetsColumnDefs: any[];
-    private isCarminDatasetProcessingEntity: boolean = false;
+    public isCarminDatasetProcessingEntity: boolean = false;
     public carminDatasetProcessing: CarminDatasetProcessing;
 
     constructor(
