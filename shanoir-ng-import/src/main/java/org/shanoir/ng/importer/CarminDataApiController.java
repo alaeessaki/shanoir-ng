@@ -14,18 +14,20 @@
 
 package org.shanoir.ng.importer;
 
-import io.swagger.annotations.ApiParam;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Date;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
+import org.shanoir.ng.importer.model.carmin.Path;
 import org.shanoir.ng.importer.model.carmin.UploadData;
 import org.shanoir.ng.shared.exception.ErrorModel;
 import org.shanoir.ng.shared.exception.RestServiceException;
-import org.shanoir.ng.utils.ImportUtils;
-import org.shanoir.ng.utils.KeycloakUtil;
-import org.shanoir.ng.importer.model.carmin.Path;
-import org.shanoir.ng.importer.model.carmin.TypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,18 +39,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Date;
-
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import io.swagger.annotations.ApiParam;
 
 /**
  * Carmin data upload results from VIP to tmp folder endpoint
@@ -67,7 +58,7 @@ public class CarminDataApiController implements CarminDataApi {
     private final HttpServletRequest httpServletRequest;
 
     @Autowired
-    CarminDataApiController(HttpServletRequest httpServletRequest){
+    CarminDataApiController(HttpServletRequest httpServletRequest) {
         this.httpServletRequest = httpServletRequest;
 
     }
@@ -88,53 +79,30 @@ public class CarminDataApiController implements CarminDataApi {
         try {
 
             // creates file from the base64 string
-            String [] pathItems = completePath.split("/");
+            String[] pathItems = completePath.split("/");
             String uploadFileName = pathItems[pathItems.length - 1];
 
-             // create unique user directory from the completePath
-             final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator + pathItems[1] + File.separator
-                     + pathItems[2];
+            // create unique user directory from the completePath
+            final String userImportDirFilePath = importDir + File.separator + VIP_UPLOAD_FOLDER + File.separator
+                    + pathItems[1] + File.separator
+                    + pathItems[2];
 
-             final File userImportDir = new File(userImportDirFilePath);
-             if (!userImportDir.exists()) {
-                 userImportDir.mkdirs();
-             }
-
-            if (TypeEnum.FILE.equals(body.getType())) {
-
-                File destinationUploadFile = new File(userImportDir.getAbsolutePath(), uploadFileName);
-                byte[] bytes = Base64.decodeBase64(body.getBase64Content());
-                FileUtils.writeByteArrayToFile(destinationUploadFile, bytes);
-
-                path.setPlatformPath(destinationUploadFile.getAbsolutePath());
-                path.setIsDirectory(false);
-                path.setSize(destinationUploadFile.length());
-                path.setLastModificationDate(new Date().getTime());
-
-            } else if (TypeEnum.ARCHIVE.equals(body.getType())) {
-
-                // zip file handling
-                File destinationUploadFile = new File(userImportDir.getAbsolutePath(), uploadFileName);
-                byte[] bytes = Base64.decodeBase64(body.getBase64Content());
-                FileUtils.writeByteArrayToFile(destinationUploadFile, bytes);
-
-                String unzipDirPath = userImportDir.getAbsolutePath() + File.separator
-                        + FilenameUtils.getBaseName(uploadFileName);
-                final File unzipDir = new File(unzipDirPath);
-                unzipDir.mkdirs();
-                unzip(destinationUploadFile.getAbsolutePath(), unzipDir.getAbsolutePath());
-
-                path.setPlatformPath(unzipDir.getAbsolutePath());
-                path.setIsDirectory(true);
-                // sum of the size of all files within the directory
-                long size = Files.walk(unzipDir.toPath()).mapToLong(p -> p.toFile().length()).sum();
-                path.setSize(size);
-                path.setLastModificationDate(new Date().getTime());
-                
-            } else {
-                throw new RestServiceException(
-                        new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "Bad arguments", null));
+            final File userImportDir = new File(userImportDirFilePath);
+            if (!userImportDir.exists()) {
+                userImportDir.mkdirs();
             }
+
+            // upload the result in the folder
+            File destinationUploadFile = new File(userImportDir.getAbsolutePath(), uploadFileName);
+            byte[] bytes = Base64.decodeBase64(body.getBase64Content());
+            FileUtils.writeByteArrayToFile(destinationUploadFile, bytes);
+
+            path.setPlatformPath(userImportDir.getAbsolutePath());
+            path.setIsDirectory(true);
+            // sum of the size of all files within the directory
+            long size = Files.walk(userImportDir.toPath()).mapToLong(p -> p.toFile().length()).sum();
+            path.setSize(size);
+            path.setLastModificationDate(new Date().getTime());
 
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
@@ -160,50 +128,8 @@ public class CarminDataApiController implements CarminDataApi {
     private String extractPathFromRequest(HttpServletRequest request) {
         String decodedUri = UriUtils.decode(request.getRequestURI(), "UTF-8");
         int index = decodedUri.indexOf(PATH_PREFIX);
-        
+
         return decodedUri.substring(index + PATH_PREFIX.length() - 1);
     }
 
-    /**
-     * util unzip method
-     * 
-     * @param zipFilePath
-     * @param destDir
-     */
-    private void unzip(String zipFilePath, String destDir) {
-        File dir = new File(destDir);
-        // create output directory if it doesn't exist
-        if (!dir.exists())
-            dir.mkdirs();
-        FileInputStream fis;
-        // buffer for read and write data to file
-        byte[] buffer = new byte[1024];
-        try {
-            fis = new FileInputStream(zipFilePath);
-            ZipInputStream zis = new ZipInputStream(fis);
-            ZipEntry ze = zis.getNextEntry();
-            while (ze != null) {
-                String fileName = ze.getName();
-                File newFile = new File(destDir + File.separator + fileName);
-
-                // create directories for sub directories in zip
-                new File(newFile.getParent()).mkdirs();
-                FileOutputStream fos = new FileOutputStream(newFile);
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, len);
-                }
-                fos.close();
-                zis.closeEntry();
-                ze = zis.getNextEntry();
-            }
-            // close last ZipEntry
-            zis.closeEntry();
-            zis.close();
-            fis.close();
-        } catch (IOException e) {
-            LOG.error(e.getMessage(), e);
-        }
-
-    }
 }
