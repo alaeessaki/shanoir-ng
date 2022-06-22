@@ -86,7 +86,7 @@ public class CarminDatasetPorcessingServiceImpl implements CarminDatasetProcessi
 
         @Override
         public List<CarminDatasetProcessing> getCarminDatasetProcessings() {
-                return Utils.toList(carminDatasetProcessingRepository.findAll());
+                return Utils.toList(carminDatasetProcessingRepository.findAllByCarminDatasetProcessingByIdDesc());
         }
 
 }
