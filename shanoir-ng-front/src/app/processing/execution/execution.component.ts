@@ -115,7 +115,6 @@ export class ExecutionComponent implements OnInit {
      */
     let resultPath = this.generateResultPath();
     execution.resultsLocation = `shanoir:/${resultPath}?token=${this.token}&refreshToken=${this.refreshToken}&md5=none&type=File`;
-    console.log(execution);
     this.carminClientService.createExecution(execution).subscribe(
       (execution: Execution) => {
         this.msgService.log('info', 'the execution successfully started.')
@@ -125,10 +124,11 @@ export class ExecutionComponent implements OnInit {
         carminDatasetProcessing.comment = execution.identifier;
         carminDatasetProcessing.studyId = [...this.selectedDatasets][0].study.id;
         carminDatasetProcessing.datasetProcessingType = DatasetProcessingType.SEGMENTATION;
-        
+        carminDatasetProcessing.inputDatasets = Array.from(this.selectedDatasets);
+
         this.carminDatasetProcessing.saveNewCarminDatasetProcessing(carminDatasetProcessing).subscribe(
-          (response) => {
-            this.msgService.log('info', 'Dataset Processing is created !')
+          (response: CarminDatasetProcessing) => {
+            this.router.navigate([`/dataset-processing/details/${response.id}`]);
           },
           (error) => {
             this.msgService.log('error', 'Sorry, an error occurred while creating dataset processing.');
