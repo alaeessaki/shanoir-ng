@@ -23,20 +23,16 @@ import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
 import org.shanoir.ng.processing.carmin.model.ExecutionStatus;
 import org.shanoir.ng.processing.carmin.service.CarminDatasetProcessingService;
 import org.shanoir.ng.processing.model.DatasetProcessing;
-import org.shanoir.ng.processing.model.DatasetProcessingType;
 import org.shanoir.ng.processing.service.DatasetProcessingService;
-import org.shanoir.ng.shared.event.ShanoirEvent;
-import org.shanoir.ng.shared.event.ShanoirEventType;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
-import org.shanoir.ng.utils.KeycloakUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
@@ -62,6 +58,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
     @Async
     @Override
+    @Transactional
     public void startJob(String identifier) {
         this.identifier = identifier;
         this.stop = false;
@@ -203,13 +200,16 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                 if (fileName.endsWith(".nii.gz")) {
                     ProcessedDatasetImportJob processedDataset = new ProcessedDatasetImportJob();
-                    DatasetProcessing datasetProcessing = new DatasetProcessing();
+                    DatasetProcessing datasetProcessing = datasetProcessingService.findById(carminDatasetProcessing.getId())
+                                                            .orElseThrow(() -> new NotFoundException("datasetProcessing not found"));
+                    // DatasetProcessing datasetProcessing = new DatasetProcessing();
 
-                    datasetProcessing.setId(carminDatasetProcessing.getId());
-                    datasetProcessing.setComment(carminDatasetProcessing.getIdentifier());
-                    datasetProcessing.setDatasetProcessingType(DatasetProcessingType.SEGMENTATION);
-                    datasetProcessing.setProcessingDate(carminDatasetProcessing.getProcessingDate());
-                    datasetProcessing.setStudyId(carminDatasetProcessing.getStudyId());
+                    // datasetProcessing.setId(datasetProcessingDB.getId());
+                    // datasetProcessing.setDatasetProcessingType(DatasetProcessingType.SEGMENTATION);
+                    // datasetProcessing.setProcessingDate(datasetProcessingDB.getProcessingDate());
+                    // datasetProcessing.setStudyId(datasetProcessingDB.getStudyId());
+                    // datasetProcessing.setInputDatasets(datasetProcessingDB.getInputDatasets());
+                    // datasetProcessing.setOutputDatasets(datasetProcessingDB.getOutputDatasets());
 
                     processedDataset.setDatasetProcessing(datasetProcessing);
                     LOG.info(newFile.getAbsolutePath());
@@ -220,7 +220,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
                     processedDataset.setStudyName("DemoStudy");
                     processedDataset.setSubjectId(1L);
                     processedDataset.setSubjectName("DemoSubject");
-                    processedDataset.setProcessedDatasetName(carminDatasetProcessing.getIdentifier());
+                    processedDataset.setProcessedDatasetName(fileName);
                     processedDataset.setDatasetType("Mesh");
 
                     importerService.createProcessedDataset(processedDataset);

@@ -57,7 +57,7 @@ export class DatasetProcessingComponent extends EntityComponent<DatasetProcessin
     private outputDatasetsToRemove: Dataset[] = [];
     public inputDatasetsColumnDefs: any[];
     public outputDatasetsColumnDefs: any[];
-    private isCarminDatasetProcessingEntity: boolean = false;
+    public isCarminDatasetProcessingEntity: boolean = false;
     public carminDatasetProcessing: CarminDatasetProcessing;
 
     constructor(
@@ -231,10 +231,10 @@ export class DatasetProcessingComponent extends EntityComponent<DatasetProcessin
                 return checkNullValue(params.data.type);
             }},
             {headerName: "Study", field: "study", type: "reference", cellRenderer: function (params: any) {
-                return checkNullValue(params.data.study.name);
+                return checkNullValue(params.data.study?.name);
             }},
             {headerName: "Subject", field: "subject", type: "reference", cellRenderer: function (params: any) {
-                return checkNullValue(params.data.subject.name);
+                return checkNullValue(params.data.subject?.name);
             }},
             {headerName: "Creation date", field: "creationDate", type: "date", cellRenderer: function (params: any) {
                 return dateRenderer(params.data.creationDate);
@@ -258,10 +258,10 @@ export class DatasetProcessingComponent extends EntityComponent<DatasetProcessin
                 return checkNullValue(params.data.type);
             }},
             {headerName: "Study", field: "study", type: "reference", cellRenderer: function (params: any) {
-                return checkNullValue(params.data.study.name);
+                return checkNullValue(params.data.study?.name);
             }},
             {headerName: "Subject", field: "subject", type: "reference", cellRenderer: function (params: any) {
-                return checkNullValue(params.data.subject.name);
+                return checkNullValue(params.data.subject?.name);
             }},
             {headerName: "Creation date", field: "creationDate", type: "date", cellRenderer: function (params: any) {
                 return dateRenderer(params.data.creationDate);
