@@ -80,7 +80,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
         while (!stop) {
 
-            Execution execution = restTemplate.getForObject(VIP_URI, Execution.class);
+            Execution execution = restTemplate.getForObject(VIP_URI+"/"+identifier, Execution.class);
 
             try {
 
