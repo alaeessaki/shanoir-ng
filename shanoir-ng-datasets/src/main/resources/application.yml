@@ -125,6 +125,12 @@ dcm4chee-arc:
   dicom.web.rs: /dcm4chee-arc/aets/DCM4CHEE/rs/studies
 
 ---
+# VIP
+vip:
+  uri: https://
+  uploads: /tmp/uploads
+
+ 
 
 ######################################
 # DO NOT COMMIT VALUES MODIFICATIONS #
