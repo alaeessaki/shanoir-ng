@@ -5,7 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -20,32 +23,39 @@ import org.shanoir.ng.dataset.modality.ProcessedDatasetType;
 import org.shanoir.ng.importer.dto.ProcessedDatasetImportJob;
 import org.shanoir.ng.importer.service.ImporterService;
 import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
+import org.shanoir.ng.processing.carmin.model.Execution;
 import org.shanoir.ng.processing.carmin.model.ExecutionStatus;
 import org.shanoir.ng.processing.carmin.service.CarminDatasetProcessingService;
 import org.shanoir.ng.processing.model.DatasetProcessing;
 import org.shanoir.ng.processing.service.DatasetProcessingService;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
+import org.shanoir.ng.shared.model.Study;
+import org.shanoir.ng.shared.repository.StudyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
-    // private final String VIP_URI = "/";
+    @Value("${vip.uri}")
+    private String VIP_URI;
+    @Value("${vip.uploads}")
+    private String importDir;
+
     private boolean stop;
     private String identifier;
 
     private static final Logger LOG = LoggerFactory.getLogger(ExecutionStatusMonitor.class);
 
     final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-    private String importDir = "/tmp/vip_uploads";
 
     @Autowired
     private CarminDatasetProcessingService carminDatasetProcessingService;
@@ -56,6 +66,9 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
     @Autowired
     private ImporterService importerService;
 
+    @Autowired
+    private StudyRepository studyRepository;
+
     @Async
     @Override
     @Transactional
@@ -63,56 +76,64 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
         this.identifier = identifier;
         this.stop = false;
 
+        RestTemplate restTemplate = new RestTemplate();
+
         while (!stop) {
+
+            Execution execution = restTemplate.getForObject(VIP_URI, Execution.class);
+
             try {
-
-                // if (ExecutionStatus.FINISHED == execution.getStatus()) {
-                // /**
-                // * updates the status and finish the job
-                // */
-
-                // CarminDatasetProcessing carminDatasetProcessing =
-                // this.carminDatasetProcessingService
-                // .getCarminDatasetProcessingByComment(this.identifier);
-
-                // carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
-
-                // this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
-                // carminDatasetProcessing);
-
-                // LOG.info("execution status updated stopping job...");
-
-                // stop = true;
-                // }
-
-                Thread.sleep(5000);
 
                 CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
                         .getCarminDatasetProcessingByComment(this.identifier);
 
-                carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
+                switch (execution.getStatus()) {
 
-                this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
-                        carminDatasetProcessing);
+                    case FINISHED:
+                        /**
+                         * updates the status and finish the job
+                         */
 
-                // unzip the .tgz files
-                final File userImportDir = new File(
-                        importDir + File.separator + carminDatasetProcessing.getResultsLocation());
+                        carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
 
-                final PathMatcher matcher = userImportDir.toPath().getFileSystem().getPathMatcher("glob:**/*.tgz");
-                final Stream<java.nio.file.Path> stream = Files.list(userImportDir.toPath());
+                        this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
+                                carminDatasetProcessing);
 
-                stream.filter(matcher::matches)
-                        .forEach(zipFile -> decompressTGZ(zipFile.toFile(), userImportDir.getAbsoluteFile(),
-                                carminDatasetProcessing));
+                        // untar the .tgz files
+                        final File userImportDir = new File(
+                                importDir + File.separator + carminDatasetProcessing.getResultsLocation());
 
-                LOG.info("execution status updated stopping job...");
+                        final PathMatcher matcher = userImportDir.toPath().getFileSystem()
+                                .getPathMatcher("glob:**/*.tgz");
+                        final Stream<java.nio.file.Path> stream = Files.list(userImportDir.toPath());
 
-                stop = true;
+                        stream.filter(matcher::matches)
+                                .forEach(zipFile -> decompressTGZ(zipFile.toFile(), userImportDir.getAbsoluteFile(),
+                                        carminDatasetProcessing));
 
-            } catch (InterruptedException e) {
-                LOG.error("error in thread sleeping : ", e);
-                e.getStackTrace();
+                        LOG.info("execution status updated stopping job...");
+
+                        stop = true;
+
+                        break;                        
+                        
+                    case UNKOWN:
+                    case EXECUTION_FAILED:
+                    case KILLED:
+                        carminDatasetProcessing.setStatus(execution.getStatus());
+
+                        this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
+                                carminDatasetProcessing);
+                        LOG.info("execution status updated stopping job...");
+
+                        stop = true;
+
+                        break;
+                    default:
+                        break;
+
+                }
+
             } catch (EntityNotFoundException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
@@ -123,7 +144,6 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
         }
     }
-
 
     /**
      * 
@@ -200,24 +220,22 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                 if (fileName.endsWith(".nii.gz")) {
                     ProcessedDatasetImportJob processedDataset = new ProcessedDatasetImportJob();
-                    DatasetProcessing datasetProcessing = datasetProcessingService.findById(carminDatasetProcessing.getId())
-                                                            .orElseThrow(() -> new NotFoundException("datasetProcessing not found"));
-                    // DatasetProcessing datasetProcessing = new DatasetProcessing();
+                    DatasetProcessing datasetProcessing = datasetProcessingService
+                            .findById(carminDatasetProcessing.getId())
+                            .orElseThrow(() -> new NotFoundException("datasetProcessing not found"));
 
-                    // datasetProcessing.setId(datasetProcessingDB.getId());
-                    // datasetProcessing.setDatasetProcessingType(DatasetProcessingType.SEGMENTATION);
-                    // datasetProcessing.setProcessingDate(datasetProcessingDB.getProcessingDate());
-                    // datasetProcessing.setStudyId(datasetProcessingDB.getStudyId());
-                    // datasetProcessing.setInputDatasets(datasetProcessingDB.getInputDatasets());
-                    // datasetProcessing.setOutputDatasets(datasetProcessingDB.getOutputDatasets());
+                    Study study = studyRepository.findById(datasetProcessing.getStudyId())
+                            .orElseThrow(() -> new NotFoundException("study not found"));
 
                     processedDataset.setDatasetProcessing(datasetProcessing);
                     LOG.info(newFile.getAbsolutePath());
 
                     processedDataset.setProcessedDatasetFilePath(newFile.getAbsolutePath());
                     processedDataset.setProcessedDatasetType(ProcessedDatasetType.RECONSTRUCTEDDATASET);
-                    processedDataset.setStudyId(1L);
-                    processedDataset.setStudyName("DemoStudy");
+                    processedDataset.setStudyId(datasetProcessing.getStudyId());
+                    processedDataset.setStudyName(study.getName());
+
+                    // TODO get a subject for the processedDataset, hard coded for the time being
                     processedDataset.setSubjectId(1L);
                     processedDataset.setSubjectName("DemoSubject");
                     processedDataset.setProcessedDatasetName(fileName);
@@ -225,7 +243,8 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                     importerService.createProcessedDataset(processedDataset);
 
-                    importerService.cleanTempFiles(processedDataset.getProcessedDatasetFilePath());
+                    // importerService.cleanTempFiles(processedDataset.getProcessedDatasetFilePath());
+                    deleteCacheDir(Paths.get(processedDataset.getProcessedDatasetFilePath()));
                 }
 
                 fos.close();
@@ -241,6 +260,13 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
             LOG.error(e.getMessage(), e);
         }
 
+    }
+
+    private void deleteCacheDir(Path directory) throws IOException {
+        Files.walk(directory)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
     }
 
 }
