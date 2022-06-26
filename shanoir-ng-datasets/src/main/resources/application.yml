@@ -127,7 +127,7 @@ dcm4chee-arc:
 ---
 # VIP
 vip:
-  uri: https://shanoir-ng-nginx/shanoir-ng/vip/rest/executions
+  uri: http://192.168.255.18:9090/rest/executions
   uploads: /tmp/uploads
 
  

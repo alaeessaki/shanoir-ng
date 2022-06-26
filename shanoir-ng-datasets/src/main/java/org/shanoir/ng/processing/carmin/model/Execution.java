@@ -19,6 +19,8 @@ public class Execution {
     private Long endDate;
     private String resultsLocation;
 
+    public Execution() {}
+
     public Execution(String identifier, ExecutionStatus status) {
         this.identifier = identifier;
         this.status = status;

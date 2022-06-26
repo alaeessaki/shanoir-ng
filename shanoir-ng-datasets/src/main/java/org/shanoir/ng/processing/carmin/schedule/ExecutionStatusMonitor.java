@@ -13,6 +13,8 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import java.lang.InterruptedException;
+
 import javax.ws.rs.NotFoundException;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -45,10 +47,11 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
-    @Value("${vip.uri}")
+    // @Value("${vip.uri}")
     private String VIP_URI;
-    @Value("${vip.uploads}")
-    private String importDir;
+
+    // @Value("${vip.uploads}")
+    private String importDir = "/tmp/vip_uploads";
 
     private boolean stop;
     private String identifier;
@@ -75,14 +78,17 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
     public void startJob(String identifier) {
         this.identifier = identifier;
         this.stop = false;
+        String uri = "http://192.168.255.18:9090/rest/executions/"+identifier+"/summary";
 
         RestTemplate restTemplate = new RestTemplate();
+        System.out.println("url :"+uri);
 
         while (!stop) {
 
-            Execution execution = restTemplate.getForObject(VIP_URI+"/"+identifier, Execution.class);
+            Execution execution = restTemplate.getForObject(uri, Execution.class);
 
             try {
+                System.out.println("execution status : "+execution.getStatus());
 
                 CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
                         .getCarminDatasetProcessingByComment(this.identifier);
@@ -101,7 +107,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                         // untar the .tgz files
                         final File userImportDir = new File(
-                                importDir + File.separator + carminDatasetProcessing.getResultsLocation());
+                                this.importDir + File.separator + carminDatasetProcessing.getResultsLocation());
 
                         final PathMatcher matcher = userImportDir.toPath().getFileSystem()
                                 .getPathMatcher("glob:**/*.tgz");
@@ -129,18 +135,26 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
                         stop = true;
 
                         break;
-                    default:
+                    case RUNNING:
+                         LOG.info("im in running");
+                        Thread.sleep(20000); // sleep/stop a thread for 20 seconds                        
                         break;
+                    default:
+                        LOG.info("unhandled status");
+                        this.stop = true;
 
                 }
 
-            } catch (EntityNotFoundException e) {
+            }catch (InterruptedException e){
+                LOG.error("entity not found :", e);
+                e.getMessage();
+            }catch (EntityNotFoundException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
             } catch (IOException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
-            }
+            } 
 
         }
     }
