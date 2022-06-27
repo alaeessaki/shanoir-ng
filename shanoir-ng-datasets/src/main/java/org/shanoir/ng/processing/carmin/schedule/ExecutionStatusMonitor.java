@@ -32,6 +32,7 @@ import org.shanoir.ng.shared.repository.StudyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,13 +43,20 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
-    private String VIP_URI = "http://192.168.255.18:9090/rest/executions/";
+    @Value("${vip-uri}")
+    private String VIP_URI;
 
-    private String importDir = "/tmp/vip_uploads";
+    @Value("${vip-upload-folder}")
+    private String importDir;
 
-    private long sleepTime = 20000;
+    @Value("${vip-sleep-time}")
+    private long sleepTime;
+
+    @Value("${list-of-ext}")
+    private String[] listOfNiftiExt;
 
     private boolean stop;
+
     private String identifier;
 
     private static final Logger LOG = LoggerFactory.getLogger(ExecutionStatusMonitor.class);
@@ -74,7 +82,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
         this.identifier = identifier;
         this.stop = false;
-        
+
         String uri = VIP_URI + identifier + "/summary";
         RestTemplate restTemplate = new RestTemplate();
 
@@ -180,10 +188,14 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                 IOUtils.copy(fin, new FileOutputStream(currentFile));
 
-                if (entry.getName().endsWith(".nii.gz")) {
-                    createProcessedDataset(currentFile, cacheFolder.getAbsolutePath(),
-                            carminDatasetProcessing);
+                // check all nifti formats
+                for (int i = 0; i < listOfNiftiExt.length; i++) {
+                    if (entry.getName().endsWith(listOfNiftiExt[i])) {
+                        createProcessedDataset(currentFile, cacheFolder.getAbsolutePath(),
+                                carminDatasetProcessing);
+                    }
                 }
+
             }
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
