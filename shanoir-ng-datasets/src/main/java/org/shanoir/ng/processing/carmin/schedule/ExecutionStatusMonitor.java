@@ -10,10 +10,6 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import java.lang.InterruptedException;
 
 import javax.ws.rs.NotFoundException;
 
@@ -36,7 +32,6 @@ import org.shanoir.ng.shared.repository.StudyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,11 +42,11 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
-    // @Value("${vip.uri}")
-    private String VIP_URI;
+    private String VIP_URI = "http://192.168.255.18:9090/rest/executions/";
 
-    // @Value("${vip.uploads}")
     private String importDir = "/tmp/vip_uploads";
+
+    private long sleepTime = 20000;
 
     private boolean stop;
     private String identifier;
@@ -76,19 +71,18 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
     @Override
     @Transactional
     public void startJob(String identifier) {
+
         this.identifier = identifier;
         this.stop = false;
-        String uri = "http://192.168.255.18:9090/rest/executions/"+identifier+"/summary";
-
+        
+        String uri = VIP_URI + identifier + "/summary";
         RestTemplate restTemplate = new RestTemplate();
-        System.out.println("url :"+uri);
 
         while (!stop) {
 
             Execution execution = restTemplate.getForObject(uri, Execution.class);
 
             try {
-                System.out.println("execution status : "+execution.getStatus());
 
                 CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
                         .getCarminDatasetProcessingByComment(this.identifier);
@@ -107,25 +101,28 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                         // untar the .tgz files
                         final File userImportDir = new File(
-                                this.importDir + File.separator + carminDatasetProcessing.getResultsLocation());
+                                this.importDir + File.separator +
+                                        carminDatasetProcessing.getResultsLocation());
 
                         final PathMatcher matcher = userImportDir.toPath().getFileSystem()
                                 .getPathMatcher("glob:**/*.tgz");
                         final Stream<java.nio.file.Path> stream = Files.list(userImportDir.toPath());
 
                         stream.filter(matcher::matches)
-                                .forEach(zipFile -> decompressTGZ(zipFile.toFile(), userImportDir.getAbsoluteFile(),
+                                .forEach(zipFile -> decompressTGZ(zipFile.toFile(),
+                                        userImportDir.getAbsoluteFile(),
                                         carminDatasetProcessing));
 
                         LOG.info("execution status updated stopping job...");
 
                         stop = true;
 
-                        break;                        
-                        
+                        break;
+
                     case UNKOWN:
                     case EXECUTION_FAILED:
                     case KILLED:
+
                         carminDatasetProcessing.setStatus(execution.getStatus());
 
                         this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
@@ -133,28 +130,28 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
                         LOG.info("execution status updated stopping job...");
 
                         stop = true;
+                        break;
 
-                        break;
                     case RUNNING:
-                         LOG.info("im in running");
-                        Thread.sleep(20000); // sleep/stop a thread for 20 seconds                        
+                        Thread.sleep(sleepTime); // sleep/stop a thread for 20 seconds
                         break;
+
                     default:
-                        LOG.info("unhandled status");
                         this.stop = true;
+                        break;
 
                 }
 
-            }catch (InterruptedException e){
-                LOG.error("entity not found :", e);
+            } catch (InterruptedException e) {
+                LOG.error("sleep thread exception :", e);
                 e.getMessage();
-            }catch (EntityNotFoundException e) {
+            } catch (EntityNotFoundException e) {
                 LOG.error("entity not found :", e);
                 e.getMessage();
             } catch (IOException e) {
-                LOG.error("entity not found :", e);
+                LOG.error("file exception :", e);
                 e.getMessage();
-            } 
+            }
 
         }
     }
@@ -170,25 +167,21 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
                 new GzipCompressorInputStream(new FileInputStream(in)))) {
             TarArchiveEntry entry;
             while ((entry = fin.getNextTarEntry()) != null) {
-                System.out.println("untaring ... " + entry.getName());
                 if (entry.isDirectory()) {
                     continue;
                 }
-                File curfile = new File(out, entry.getName());
-                File parent = curfile.getParentFile();
-                if (!parent.exists()) {
-                    parent.mkdirs();
-                }
-
-                IOUtils.copy(fin, new FileOutputStream(curfile));
 
                 File cacheFolder = new File(out.getAbsolutePath() + File.separator + "cache");
                 if (!cacheFolder.exists()) {
                     cacheFolder.mkdirs();
                 }
 
-                if (entry.getName().endsWith(".zip")) {
-                    createProcessedDataset(curfile.getAbsolutePath(), cacheFolder.getAbsolutePath(),
+                File currentFile = new File(cacheFolder, entry.getName());
+
+                IOUtils.copy(fin, new FileOutputStream(currentFile));
+
+                if (entry.getName().endsWith(".nii.gz")) {
+                    createProcessedDataset(currentFile, cacheFolder.getAbsolutePath(),
                             carminDatasetProcessing);
                 }
             }
@@ -203,72 +196,41 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
      * @param destDir
      * @param carminDatasetProcessing
      */
-    private void createProcessedDataset(String zipFilePath, String destDir,
+    private void createProcessedDataset(File niiftiFile, String destDir,
             CarminDatasetProcessing carminDatasetProcessing) {
         File dir = new File(destDir);
         // create output directory if it doesn't exist
         if (!dir.exists())
             dir.mkdirs();
 
-        FileInputStream fis;
-        // buffer for read and write data to file
-        byte[] buffer = new byte[1024];
-
         try {
-            fis = new FileInputStream(zipFilePath);
-            ZipInputStream zis = new ZipInputStream(fis);
-            ZipEntry ze = zis.getNextEntry();
-            while (ze != null) {
-                String fileName = ze.getName();
-                File newFile = new File(destDir + File.separator + fileName);
 
-                // create directories for sub directories in zip
-                new File(newFile.getParent()).mkdirs();
-                FileOutputStream fos = new FileOutputStream(newFile);
+            ProcessedDatasetImportJob processedDataset = new ProcessedDatasetImportJob();
+            DatasetProcessing datasetProcessing = datasetProcessingService
+                    .findById(carminDatasetProcessing.getId())
+                    .orElseThrow(() -> new NotFoundException("datasetProcessing not found"));
 
-                int len;
+            Study study = studyRepository.findById(datasetProcessing.getStudyId())
+                    .orElseThrow(() -> new NotFoundException("study not found"));
 
-                while ((len = zis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, len);
-                }
+            processedDataset.setDatasetProcessing(datasetProcessing);
+            LOG.info(niiftiFile.getAbsolutePath());
 
-                if (fileName.endsWith(".nii.gz")) {
-                    ProcessedDatasetImportJob processedDataset = new ProcessedDatasetImportJob();
-                    DatasetProcessing datasetProcessing = datasetProcessingService
-                            .findById(carminDatasetProcessing.getId())
-                            .orElseThrow(() -> new NotFoundException("datasetProcessing not found"));
+            processedDataset.setProcessedDatasetFilePath(niiftiFile.getAbsolutePath());
+            processedDataset.setProcessedDatasetType(ProcessedDatasetType.RECONSTRUCTEDDATASET);
+            processedDataset.setStudyId(datasetProcessing.getStudyId());
+            processedDataset.setStudyName(study.getName());
 
-                    Study study = studyRepository.findById(datasetProcessing.getStudyId())
-                            .orElseThrow(() -> new NotFoundException("study not found"));
+            // TODO get a subject for the processedDataset, hard coded for the time being
+            processedDataset.setSubjectId(1L);
+            processedDataset.setSubjectName("DemoSubject");
+            processedDataset.setProcessedDatasetName(getNameWithoutExtension(niiftiFile.getName()));
+            processedDataset.setDatasetType("Mesh");
 
-                    processedDataset.setDatasetProcessing(datasetProcessing);
-                    LOG.info(newFile.getAbsolutePath());
+            importerService.createProcessedDataset(processedDataset);
 
-                    processedDataset.setProcessedDatasetFilePath(newFile.getAbsolutePath());
-                    processedDataset.setProcessedDatasetType(ProcessedDatasetType.RECONSTRUCTEDDATASET);
-                    processedDataset.setStudyId(datasetProcessing.getStudyId());
-                    processedDataset.setStudyName(study.getName());
-
-                    // TODO get a subject for the processedDataset, hard coded for the time being
-                    processedDataset.setSubjectId(1L);
-                    processedDataset.setSubjectName("DemoSubject");
-                    processedDataset.setProcessedDatasetName(fileName);
-                    processedDataset.setDatasetType("Mesh");
-
-                    importerService.createProcessedDataset(processedDataset);
-
-                    // importerService.cleanTempFiles(processedDataset.getProcessedDatasetFilePath());
-                    deleteCacheDir(Paths.get(processedDataset.getProcessedDatasetFilePath()));
-                }
-
-                fos.close();
-                zis.closeEntry();
-                ze = zis.getNextEntry();
-            }
-            // close last ZipEntry
-            zis.closeEntry();
-            zis.close();
-            fis.close();
+            // importerService.cleanTempFiles(processedDataset.getProcessedDatasetFilePath());
+            deleteCacheDir(Paths.get(destDir));
 
         } catch (IOException e) {
             LOG.error(e.getMessage(), e);
@@ -281,6 +243,11 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
                 .sorted(Comparator.reverseOrder())
                 .map(Path::toFile)
                 .forEach(File::delete);
+    }
+
+    private String getNameWithoutExtension(String file) {
+        int dotIndex = file.indexOf('.');
+        return (dotIndex == -1) ? file : file.substring(0, dotIndex);
     }
 
 }
