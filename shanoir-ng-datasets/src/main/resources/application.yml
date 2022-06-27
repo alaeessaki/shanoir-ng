@@ -126,9 +126,9 @@ dcm4chee-arc:
 
 ---
 # VIP
-vip:
-  uri: http://192.168.255.18:9090/rest/executions
-  uploads: /tmp/uploads
+vip-uri: http://192.168.255.18:9090/rest/executions/
+vip-upload-folder: /tmp/vip_uploads
+vip-sleep-time: 20000
 
  
 
