@@ -40,6 +40,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * CRON job to request VIP api and create porcessedDataset
+ * 
+ * @author KhalilKes
+ */
 @Service
 public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
@@ -93,7 +98,8 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
             try {
 
                 CarminDatasetProcessing carminDatasetProcessing = this.carminDatasetProcessingService
-                        .getCarminDatasetProcessingByComment(this.identifier);
+                        .findByIdentifier(this.identifier)
+                        .orElseThrow(() -> new EntityNotFoundException("entity not found with identifier :" + this.identifier));
 
                 switch (execution.getStatus()) {
 
@@ -104,8 +110,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                         carminDatasetProcessing.setStatus(ExecutionStatus.FINISHED);
 
-                        this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
-                                carminDatasetProcessing);
+                        this.carminDatasetProcessingService.updateCarminDatasetProcessing(carminDatasetProcessing.getId(), carminDatasetProcessing);
 
                         // untar the .tgz files
                         final File userImportDir = new File(
@@ -133,8 +138,7 @@ public class ExecutionStatusMonitor implements ExecutionStatusMonitorService {
 
                         carminDatasetProcessing.setStatus(execution.getStatus());
 
-                        this.carminDatasetProcessingService.update(carminDatasetProcessing.getId(),
-                                carminDatasetProcessing);
+                        this.carminDatasetProcessingService.updateCarminDatasetProcessing(carminDatasetProcessing.getId(), carminDatasetProcessing);
                         LOG.info("execution status updated stopping job...");
 
                         stop = true;
