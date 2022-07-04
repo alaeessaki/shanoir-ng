@@ -1,12 +1,14 @@
 package org.shanoir.ng.processing.carmin.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.shanoir.ng.processing.carmin.model.CarminDatasetProcessing;
+import org.shanoir.ng.shared.core.service.BasicEntityService;
 import org.shanoir.ng.shared.exception.EntityNotFoundException;
 import org.springframework.security.access.prepost.PreAuthorize;
 
-public interface CarminDatasetProcessingService {
+public interface CarminDatasetProcessingService  extends BasicEntityService<CarminDatasetProcessing>{
 
     /**
      * save a CarminDatasetProcessing
@@ -15,24 +17,13 @@ public interface CarminDatasetProcessingService {
      * @return
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT') and #carminDatasetProcessing.getId() == null")
-    CarminDatasetProcessing create(CarminDatasetProcessing carminDatasetProcessing);
+    CarminDatasetProcessing createCarminDatasetProcessing(CarminDatasetProcessing carminDatasetProcessing);
 
     @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT', 'USER')")
-    CarminDatasetProcessing getCarminDatasetProcessingByComment(String comment) throws EntityNotFoundException;
+    Optional<CarminDatasetProcessing> findByIdentifier(String identifier);
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT', 'USER')")
-    List<CarminDatasetProcessing> getCarminDatasetProcessings();
-
-    /**
-     * Update an entity.
-     *
-     * @param entity the entity to update.
-     * @return updated entity.
-     * @throws EntityNotFoundException
-     * @throws MicroServiceCommunicationException
-     */
     @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT')")
-    CarminDatasetProcessing update(Long datasetProcessingId, CarminDatasetProcessing carminDatasetProcessing) throws EntityNotFoundException;
+    CarminDatasetProcessing updateCarminDatasetProcessing(Long datasetProcessingId, CarminDatasetProcessing carminDatasetProcessing) throws EntityNotFoundException;
 
 
 }
