@@ -57,7 +57,7 @@ public class CarminDatasetProcessingApiController implements CarminDatasetProces
          * run monitoring job
          */
 
-        //executionStatusMonitorService.startJob(carminDatasetProcessing.getIdentifier());
+        executionStatusMonitorService.startJob(carminDatasetProcessing.getIdentifier());
 
         return new ResponseEntity<>(
                 carminDatasetProcessingMapper.carminDatasetProcessingToCarminDatasetProcessingDTO(createdDatasetProcessing),
