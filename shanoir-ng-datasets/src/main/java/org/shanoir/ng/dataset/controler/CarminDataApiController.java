@@ -217,28 +217,50 @@ public class CarminDataApiController implements CarminDataApi{
                     new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "No files could be found for this dataset(s)."));
         }
 
-        File zipFile = new File(tmpFilePath + ZIP);
-        zipFile.createNewFile();
+        File resultFile = null;
 
-        zip(workFolder.getAbsolutePath(), zipFile.getAbsolutePath());
+        if(NII.equals(format)){
+            // return the file in the tmpFilePath
+            File directory = new File(workFolder.getAbsolutePath());
+            File[] files = directory.listFiles();
+
+
+            // return only one nifti file
+            for (int i = 0; i < files.length; i++) {
+                if(files[i].getName().endsWith("nii.gz")){
+                    resultFile = files[i];
+                    break;
+                }
+            }
+        }else{
+            File zipFile = new File(tmpFilePath + ZIP);
+            zipFile.createNewFile();
+
+            zip(workFolder.getAbsolutePath(), zipFile.getAbsolutePath());
+
+            resultFile = zipFile;
+        }
+
+        if(resultFile == null) throw new RestServiceException(
+                new ErrorModel(HttpStatus.UNPROCESSABLE_ENTITY.value(), "No files could be found for this dataset(s)."));
 
         // Try to determine file's content type
-        String contentType = request.getServletContext().getMimeType(zipFile.getAbsolutePath());
+        String contentType = request.getServletContext().getMimeType(resultFile.getAbsolutePath());
 
         ShanoirEvent event = new ShanoirEvent(ShanoirEventType.DOWNLOAD_DATASET_EVENT, dataset.getId().toString(), KeycloakUtil.getTokenUserId(), dataset.getId().toString() + "." + format, ShanoirEvent.IN_PROGRESS);
         eventService.publishEvent(event);
 
-        try (InputStream is = new FileInputStream(zipFile);) {
-            response.setHeader("Content-Disposition", "attachment;filename=" + zipFile.getName());
+        try (InputStream is = new FileInputStream(resultFile);) {
+            response.setHeader("Content-Disposition", "attachment;filename=" + resultFile.getName());
             response.setContentType(contentType);
-            response.setContentLengthLong(zipFile.length());
+            response.setContentLengthLong(resultFile.length());
             org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
             response.flushBuffer();
             event.setStatus(ShanoirEvent.SUCCESS);
             eventService.publishEvent(event);
         } finally {
             FileUtils.deleteQuietly(workFolder);
-            FileUtils.deleteQuietly(zipFile);
+            FileUtils.deleteQuietly(resultFile);
         }
     }
 
